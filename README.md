@@ -1,4 +1,4 @@
-# Lifetime Leveling
+# LifetimeLeveling
 
 App web de productividad estilo RPG. Gamifica habitos diarios con metas, acciones, entrenamiento, logros y progreso por niveles.
 
@@ -42,3 +42,8 @@ Frontend:
 - `GET /api/state`
 - `PUT /api/state`
 - `POST /api/state/reset`
+## Deploy
+
+- Subi el repo a GitHub/GitLab.
+- Crea un servicio en Railway/Render y conecta el repo.
+- Configura variables de entorno en el panel.

@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lifetime Leveling</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <header class="topbar">
+    <h1>Lifetime Leveling</h1>
+    <div class="navRow">
+      <button class="hamburger app-only" id="btnNavToggle" type="button" aria-expanded="false" aria-controls="primaryNav">
+        <span class="hamburgerBar"></span>
+        <span class="hamburgerBar"></span>
+        <span class="hamburgerBar"></span>
+      </button>
+      <nav class="tabs primary" id="primaryNav" aria-label="Navegaci�n principal">
+        <button class="tab app-only active" data-route="dashboard">?? Resumen</button>
+        <button class="tab app-only" data-route="objetivos">Objetivos diarios</button>
+        <button class="tab app-only" data-route="acciones">? Objetivos extra</button>
+        <button class="tab app-only" data-route="entrenamiento">Entrenamiento</button>
+        <button class="tab app-only" data-route="stats">Stats</button>
+        <button class="tab app-only" data-route="logros">Logros</button>
+        <button class="tab guest-only" data-route="login">Login</button>
+        <button class="tab guest-only" data-route="signup">Crear cuenta</button>
+      </nav>
+      <nav class="tabs secondary" aria-label="Navegaci�n secundaria">
+        <div class="settingsMe u app-only" id="settingsMenu">
+          <button class="tab settingsBtn avatarBtn" id="btnSettings" type="button" aria-haspopup="true" aria-expanded="false" aria-label="Configuracion">
+            <span class="avatarCircle" id="avatarCircle" aria-hidden="true"></span>
+          </button>
+          <div class="settingsPanel" id="settingsPanel" role="menu" hidden>
+            <button class="settingsItem" id="btnOpenSettings" type="button" role="menuitem">Configuracion</button>
+            <button class="settingsItem" id="btnOpenGoals" type="button" role="menuitem">Objetivos principales</button>
+            <button class="settingsItem danger" id="btnLogout" type="button" role="menuitem">Cerrar sesion</button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <main class="app" id="app">
+    <!-- AUTH -->
+    <section class="screen" data-screen="login" data-auth="guest">
+      <div class="card authCard">
+        <h2>Login</h2>
+        <form class="form" id="loginForm">
+          <label class="label" for="loginEmail">Email</label>
+          <input class="input" id="loginEmail" type="email" autocomplete="username" required />
+
+          <label class="label" for="loginPassword">Password</label>
+          <div class="inputRow">
+            <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
+            <button class="btn ghost iconBtn" type="button" data-toggle-password="loginPassword">Ver</button>
+          </div>
+
+          <p class="formError" id="loginError" hidden></p>
+          <div class="actionsRow right">
+            <button class="btn" type="submit">Entrar</button>
+          </div>
+        </form>
+        <p class="muted">
+          No tienes cuenta?
+          <button class="linkLike" id="goSignup" type="button">Crear cuenta</button>
+        </p>
+      </div>
+    </section>
+
+    <section class="screen" data-screen="signup" data-auth="guest">
+      <div class="card authCard">
+        <h2>Crear cuenta</h2>
+        <form class="form" id="signupForm">
+          <label class="label" for="signupName">Nombre</label>
+          <input class="input" id="signupName" type="text" autocomplete="name" required />
+
+          <label class="label" for="signupEmail">Email</label>
+          <input class="input" id="signupEmail" type="email" autocomplete="username" required />
+
+          <div class="labelRow">
+            <label class="label" for="signupPassword">Password</label>
+            <button class="helpBtn" type="button" aria-expanded="false" aria-controls="passwordHelp" data-help-toggle="passwordHelp">?</button>
+          </div>
+          <div class="helpBox" id="passwordHelp" hidden>
+            Password minimo 8 caracteres, al menos una letra y un numero.
+          </div>
+          <div class="inputRow">
+            <input class="input" id="signupPassword" type="password" autocomplete="new-password" required />
+            <button class="btn ghost iconBtn" type="button" data-toggle-password="signupPassword">Ver</button>
+          </div>
+
+          <p class="formError" id="signupError" hidden></p>
+          <div class="actionsRow right">
+            <button class="btn" type="submit">Crear</button>
+          </div>
+        </form>
+        <p class="muted">
+          Ya tienes cuenta?
+          <button class="linkLike" id="goLogin" type="button">Login</button>
+        </p>
+      </div>
+    </section>
+    <!-- DASHBOARD -->
+    <section class="screen active" data-screen="dashboard" data-auth="app">
+                  <div class="card dashboardCard">
+        <div class="row">
+          <div>
+            <p class="muted">Usuario</p>
+            <button class="linkLike" id="btnEditName" aria-label="Editar nombre">
+              <h2 id="userName">Invitado</h2>
+            </button>
+          </div>
+          <div class="right">
+            <p class="muted">Hoy</p>
+            <p class="big" id="todayText">�?"</p>
+          </div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="stats">
+          <div class="stat">
+            <p class="muted">Nivel</p>
+            <p class="big" id="levelDash">1</p>
+          </div>
+          <div class="stat">
+            <p class="muted">XP actual</p>
+            <p class="big" id="xpDash">0</p>
+          </div>
+          <div class="stat">
+            <p class="muted">XP para subir</p>
+            <p class="big" id="xpNeedDash">100</p>
+          </div>
+          <div class="stat">
+            <p class="muted">Racha 🔥</p>
+            <p class="big" id="streakDash">0</p>
+          </div>
+          <div class="stat">
+            <p class="muted">Tokens</p>
+            <p class="big" id="tokensDash">0</p>
+            <button class="btn ghost tokenBtn" id="skipTokenBtn" type="button">Usar token</button>
+          </div>
+        </div>
+
+        <div class="barra hpBar" aria-label="Vida actual">
+          <div class="progreso" id="lifeBarDash"></div>
+          <span class="barLabel" id="lifeBarLabel">100/100</span>
+        </div>
+        <div class="barra" aria-label="Progreso de XP">
+          <div class="progreso" id="xpBarDash"></div>
+          <span class="barLabel" id="xpBarLabel">XP 0/100</span>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <div class="row">
+            <h3>Calendario</h3>
+            <button class="badge linkBadge" id="calendarMonthBtn" type="button">-</button>
+          </div>
+          <div class="calendarGrid" id="calendarGrid"></div>
+          <div class="adminControls" id="adminControls">
+            <p class="muted">Admin fecha</p>
+            <div class="actionsRow">
+              <button class="btn ghost" type="button" data-admin-date="level-up">Subir nivel</button>
+              <button class="btn ghost" type="button" data-admin-date="reset-accounts">Reset cuentas</button>
+              <button class="btn ghost" type="button" data-admin-date="prev-day">Dia -</button>
+              <button class="btn ghost" type="button" data-admin-date="next-day">Dia +</button>
+              <button class="btn ghost" type="button" data-admin-date="prev-month">Mes -</button>
+              <button class="btn ghost" type="button" data-admin-date="next-month">Mes +</button>
+              <button class="btn ghost" type="button" data-admin-date="today">Hoy</button>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="row">
+            <h3>Objetivos del dia</h3>
+          </div>
+          <h4>Completados</h4>
+          <ul class="list" id="goalsDoneSummary"></ul>
+          <h4>Pendientes</h4>
+          <ul class="list" id="goalsMissingSummary"></ul>
+        </div>
+      </div>
+      </div>
+        <div class="row">
+          <h3>Logros ganados</h3>
+          <span class="badge" id="achievementsCount">0</span>
+        </div>
+        <ul class="list" id="achievementsList"></ul>
+      </div>
+    </section>
+
+    <!-- ACCIONES -->
+    <section class="screen" data-screen="acciones" data-auth="app">
+      <div class="panel">
+        <p>Nivel: <span id="levelActions">1</span></p>
+        <p>XP: <span id="xpActions">0</span> / <span id="xpNeedActions">100</span></p>
+
+        <div class="barra">
+          <div class="progreso" id="xpBarActions"></div>
+        </div>
+      </div>
+
+      <h2>Objetivos extra</h2>
+      <div class="acciones" id="actionsButtons"></div>
+    </section>
+
+    <!-- ENTRENAMIENTO -->
+    <section class="screen" data-screen="entrenamiento" data-auth="app">
+      <div class="card">
+        <h2>Entrenamiento</h2>
+        <p class="muted">Ejercicios y repeticiones</p>
+        <div class="dayTabs" id="trainingDayTabs" role="tablist" aria-label="Dias de la semana">
+          <button class="dayTab" type="button" data-day="monday">Lunes</button>
+          <button class="dayTab" type="button" data-day="tuesday">Martes</button>
+          <button class="dayTab" type="button" data-day="wednesday">Miercoles</button>
+          <button class="dayTab" type="button" data-day="thursday">Jueves</button>
+          <button class="dayTab" type="button" data-day="friday">Viernes</button>
+          <button class="dayTab" type="button" data-day="saturday">Sabado</button>
+          <button class="dayTab" type="button" data-day="sunday">Domingo</button>
+        </div>
+        <button class="btn" id="btnAddExercise">+ Agregar ejercicio</button>
+        <div class="trainingHeader" aria-hidden="true">
+          <span class="col">Ejercicio</span>
+          <span class="col reps">Repeticiones</span>
+          <span class="col actions">Acciones</span>
+        </div>
+        <ul class="list" id="trainingList"></ul>
+      </div>
+    </section>
+    <!-- OBJETIVOS PRINCIPALES -->
+    <section class="screen" data-screen="objetivos-principales" data-auth="app">
+      <div class="card">
+        <h2>Objetivos principales</h2>
+        <form class="form" id="goalsForm" novalidate>
+            <label class="label" for="goalExercise">Hacer ejercicio (min)</label>
+            <input class="input" id="goalExercise" type="number" min="0" max="600" step="1" />
+            
+            <label class="label" for="goalSteps">Cantidad de pasos</label>
+            <input class="input" id="goalSteps" type="number" min="0" max="100000" step="1" />
+            
+            <label class="label" for="goalStudy">Estudiar (min)</label>
+            <input class="input" id="goalStudy" type="number" min="0" max="600" step="1" />
+
+            <label class="label" for="goalRead">Leer (min)</label>
+            <input class="input" id="goalRead" type="number" min="0" max="600" step="1" />
+            
+            <label class="label" for="goalCalories">Calorias del dia</label>
+            <input class="input" id="goalCalories" type="number" min="0" max="10000" step="1" />
+
+            <label class="label" for="goalWater">Litros de agua</label>
+            <input class="input" id="goalWater" type="number" min="0" max="10" step="0.1" />
+
+          <div class="actionsRow right">
+            <button class="btn" type="submit">Guardar objetivos</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- OBJETIVOS -->
+    <section class="screen" data-screen="objetivos" data-auth="app">
+      <div class="card">
+        <h2>Objetivos diarios</h2>
+        <div class="panel">
+          <p>Nivel: <span id="levelGoals">1</span></p>
+          <p>XP: <span id="xpGoals">0</span> / <span id="xpNeedGoals">100</span></p>
+          <div class="barra">
+            <div class="progreso" id="xpBarGoals"></div>
+          </div>
+        </div>
+        <ul class="list" id="goalsCompleteList"></ul>
+      </div>
+    </section>
+    <!-- LOGROS -->
+    <section class="screen" data-screen="logros" data-auth="app">
+      <div class="card">
+        <div class="row">
+          <h3>Logros ganados</h3>
+          <span class="badge" id="achievementsCountView">0</span>
+        </div>
+        <ul class="list" id="achievementsListView"></ul>
+      </div>
+    </section>
+    <!-- STATS -->
+    <section class="screen" data-screen="stats" data-auth="app">
+      <div class="card">
+        <div class="row">
+          <h3>Stats del usuario</h3>
+        </div>
+        <ul class="list" id="statsList"></ul>
+      </div>
+    </section>
+  </main>
+
+  <!-- Modal simple reutilizable -->
+  <div class="modal" id="modal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalBox">
+      <h3 id="modalTitle">—</h3>
+      <input id="modalInput" class="input" placeholder="Escribí..." />
+      <div class="actionsRow right">
+        <button class="btn ghost" id="modalCancel">Cancelar</button>
+        <button class="btn" id="modalOk">Guardar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal configuracion -->
+  <div class="modal" id="settingsModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalBox">
+      <h3>Configuracion</h3>
+      <form class="form" id="settingsForm">
+        <label class="label" for="settingsName">Nombre visible</label>
+        <input class="input" id="settingsName" type="text" autocomplete="name" />
+
+        <div class="inputRow">
+          <input class="input" id="settingsPassword" type="password" autocomplete="new-password" />
+          <button class="btn ghost iconBtn" type="button" data-toggle-password="settingsPassword">Ver</button>
+        </div>
+
+        <label class="label" for="settingsAvatar">Imagen de usuario</label>
+        <input class="input" id="settingsAvatar" type="file" accept="image/*" />
+
+        <p class="formError" id="settingsError" hidden></p>
+        <div class="actionsRow right">
+          <button class="btn ghost" id="settingsCancel" type="button">Cancelar</button>
+          <button class="btn" type="submit">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal dia -->
+  <div class="modal" id="dayModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalBox">
+      <h3 id="dayModalTitle">Dia</h3>
+      <p class="muted" id="dayMissionText"></p>
+      <div class="dayActionsBlock">
+        <h4>Objetivos hechos</h4>
+        <ul class="list" id="dayActionsDone"></ul>
+        <h4>Objetivos faltantes</h4>
+        <ul class="list" id="dayActionsMissing"></ul>
+      </div>
+      <div class="actionsRow right">
+        <button class="btn ghost" id="dayModalClose" type="button">Cerrar</button>
+      </div>
+    </div>
+  </div>
+  <!-- Modal meses -->
+  <div class="modal" id="monthPickerModal" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="modalBox">
+      <h3>Seleccionar mes</h3>
+      <div class="form" id="monthPickerForm">
+        <label class="label" for="monthPickerYear">Ano</label>
+        <select class="input" id="monthPickerYear"></select>
+        <label class="label" for="monthPickerMonth">Mes</label>
+        <select class="input" id="monthPickerMonth"></select>
+        <div class="actionsRow right">
+          <button class="btn ghost" id="monthPickerClose" type="button">Cancelar</button>
+          <button class="btn" id="monthPickerApply" type="button">Ver</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <!-- Toast -->
+  <div class="toast" id="toast" aria-live="polite" aria-atomic="true"></div>
+
+  <script type="module" src="src/main.js"></script>
+</body>
+</html>
+
+
+
+
+
