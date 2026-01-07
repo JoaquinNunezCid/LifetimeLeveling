@@ -10,8 +10,8 @@ import { mountStatsView } from "./ui/statsView.js";
 import { mountGoalsView } from "./ui/goalsView.js";
 import { mountGoalsEditView } from "./ui/goalsEditView.js";
 import { lockPageForModal, unlockPageForModal } from "./ui/modalLock.js";
-import { clearSession, getCurrentUser, updateUserPassword, updateUserProfile } from "./data/auth.js";
-import { migrateLegacyState } from "./data/storage.js";
+import { clearSession, fetchCurrentUser, getCurrentUser, updateUserPassword, updateUserProfile } from "./data/auth.js";
+import { fetchState, loadState, migrateLegacyState } from "./data/storage.js";
 import { applyTranslations, getLanguage, setLanguage, t } from "./core/i18n.js";
 
 function createModal() {
@@ -88,10 +88,15 @@ function unmountViews() {
   store = null;
 }
 
-function mountApp(user) {
+async function mountApp(user) {
   unmountViews();
-  migrateLegacyState(user.id);
-  store = createStore({ userId: user.id });
+  const remoteState = await fetchState();
+  let initialState = remoteState;
+  if (!remoteState) {
+    migrateLegacyState(user.id);
+    initialState = loadState(user.id);
+  }
+  store = createStore({ userId: user.id, initialState });
   const currentName = store.getState()?.user?.name;
   if (!currentName || currentName === "Invitado") {
     store.dispatch({ type: "USER_SET_NAME", payload: user.name });
@@ -116,9 +121,9 @@ document.querySelectorAll(".tab[data-route]").forEach(btn => {
 mountAuthView({
   router,
   toast,
-  onAuth: (user) => {
+  onAuth: async (user) => {
     setAuthUI(true);
-    mountApp(user);
+    await mountApp(user);
     setAvatar(user);
     router.setRoute("dashboard");
   },
@@ -304,7 +309,7 @@ if (settingsCancel) {
 
 
 if (settingsForm) {
-  settingsForm.addEventListener("submit", (e) => {
+  settingsForm.addEventListener("submit", async (e) => {
     e.preventDefault();
     const user = getCurrentUser();
     if (!user) return;
@@ -319,25 +324,30 @@ if (settingsForm) {
         setError(settingsError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
-      updateUserPassword({ id: user.id, password });
+      const res = await updateUserPassword({ id: user.id, password });
+      if (res?.error) {
+        setError(settingsError, t("auth.signupFields"));
+        return;
+      }
     }
 
     if (name.trim()) {
-      const res = updateUserProfile({ id: user.id, name: name.trim() });
+      const res = await updateUserProfile({ id: user.id, name: name.trim() });
       if (res?.user) {
         store?.dispatch({ type: "USER_SET_NAME", payload: res.user.name });
       }
     }
 
     if (file) {
-      resizeImageFile(file).then((dataUrl) => {
-        const res = updateUserProfile({ id: user.id, avatar: dataUrl });
+      try {
+        const dataUrl = await resizeImageFile(file);
+        const res = await updateUserProfile({ id: user.id, avatar: dataUrl });
         if (res?.user) setAvatar(res.user);
         toast.show(t("toast.settingsSaved"));
         closeSettingsModal();
-      }).catch(() => {
+      } catch {
         setError(settingsError, t("toast.imageFail"));
-      });
+      }
       return;
     }
 
@@ -375,13 +385,25 @@ document.documentElement.lang = getLanguage();
 applyTranslations();
 updatePasswordToggleLabels();
 
-const currentUser = getCurrentUser();
-if (currentUser) {
-  setAuthUI(true);
-  mountApp(currentUser);
-  setAvatar(currentUser);
-  router.setRoute("dashboard");
-} else {
+async function initApp() {
+  const cachedUser = getCurrentUser();
+  if (cachedUser) {
+    setAuthUI(true);
+    await mountApp(cachedUser);
+    setAvatar(cachedUser);
+    router.setRoute("dashboard");
+    return;
+  }
+  const remoteUser = await fetchCurrentUser();
+  if (remoteUser) {
+    setAuthUI(true);
+    await mountApp(remoteUser);
+    setAvatar(remoteUser);
+    router.setRoute("dashboard");
+    return;
+  }
   setAuthUI(false);
   router.setRoute("login");
 }
+
+initApp();

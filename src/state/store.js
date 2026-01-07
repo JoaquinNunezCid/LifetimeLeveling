@@ -242,8 +242,8 @@ function applyActionsUnlockMigration(userId, state) {
   return { ...state, daily };
 }
 
-export function createStore({ userId }) {
-  let state = loadState(userId);
+export function createStore({ userId, initialState = null }) {
+  let state = initialState || loadState(userId);
   state = applyDailyRolloverPenalty(state);
   state = applyDailyFailurePenalty(state);
   state = { ...state, daily: ensureDaily(state.daily) };

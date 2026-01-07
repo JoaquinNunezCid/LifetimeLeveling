@@ -60,7 +60,7 @@ export function mountAuthView({ router, toast, onAuth }) {
   });
 
   if (loginForm) {
-    loginForm.addEventListener("submit", (e) => {
+    loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       setError(loginError, "");
 
@@ -74,7 +74,7 @@ export function mountAuthView({ router, toast, onAuth }) {
         setError(loginError, t("auth.passwordRequired"));
         return;
       }
-      const res = authenticate(email, password);
+      const res = await authenticate(email, password);
 
       if (res?.error) {
         setError(loginError, t("auth.invalidCredentials"));
@@ -89,7 +89,7 @@ export function mountAuthView({ router, toast, onAuth }) {
   }
 
   if (signupForm) {
-    signupForm.addEventListener("submit", (e) => {
+    signupForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       setError(signupError, "");
 
@@ -105,7 +105,7 @@ export function mountAuthView({ router, toast, onAuth }) {
         setError(signupError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
-      const res = createUser({ name, email, password });
+      const res = await createUser({ name, email, password });
 
       if (res?.error === "email_taken") {
         setError(signupError, t("auth.emailTaken"));
@@ -119,16 +119,9 @@ export function mountAuthView({ router, toast, onAuth }) {
         return;
       }
 
-      const loginRes = authenticate(email, password);
-      if (loginRes?.error) {
-        setError(signupError, t("auth.signupLoginFailed"));
-        toast?.show?.(t("auth.loginNow"));
-        return;
-      }
-
       signupForm.reset();
       setError(signupError, "");
-      onAuth?.(loginRes.user);
+      onAuth?.(res.user);
     });
   }
 }

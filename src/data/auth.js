@@ -1,80 +1,71 @@
-const KEY = "levelup_auth_db";
-const SCHEMA = 1;
+import { apiRequest, clearToken, getToken, setToken } from "./api.js";
 
-function defaultDb() {
-  return {
-    schema: SCHEMA,
-    users: [],
-    session: { currentUserId: null },
-  };
-}
+const USER_KEY = "levelup_current_user";
 
 function safeParse(raw) {
   try { return JSON.parse(raw); } catch { return null; }
 }
 
-function loadDb() {
-  const raw = localStorage.getItem(KEY);
-  if (!raw) return defaultDb();
-  const parsed = safeParse(raw);
-  if (!parsed) return defaultDb();
-  const base = defaultDb();
-  const db = { ...base, ...parsed };
-  if (!Array.isArray(db.users)) db.users = [];
-  if (!db.session || typeof db.session !== "object") db.session = base.session;
-  db.schema = SCHEMA;
-  return db;
+function saveUser(user) {
+  if (!user) return;
+  localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
-function saveDb(db) {
-  localStorage.setItem(KEY, JSON.stringify(db));
+function loadUser() {
+  const raw = localStorage.getItem(USER_KEY);
+  if (!raw) return null;
+  return safeParse(raw);
 }
 
-export function createUser({ name, email, password }) {
-  const db = loadDb();
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const cleanName = String(name || "").trim();
-  const cleanPass = String(password || "").trim();
+function clearUser() {
+  localStorage.removeItem(USER_KEY);
+}
 
-  if (!normalizedEmail || !cleanPass) {
-    return { error: "invalid_input" };
-  }
-
-  if (db.users.some(u => u.email === normalizedEmail)) {
-    return { error: "email_taken" };
-  }
-
-  const id = (crypto?.randomUUID?.() ?? String(Date.now()));
-  const user = {
-    id,
-    name: cleanName || "Usuario",
-    email: normalizedEmail,
-    password: cleanPass,
-    createdAt: new Date().toISOString(),
+export async function createUser({ name, email, password }) {
+  const payload = {
+    name: String(name || "").trim(),
+    email: String(email || "").trim().toLowerCase(),
+    password: String(password || "").trim(),
   };
-
-  db.users.unshift(user);
-  db.session.currentUserId = id;
-  saveDb(db);
-  return { user };
+  const res = await apiRequest("/api/auth/register", { method: "POST", body: payload });
+  if (res?.token && res?.user) {
+    setToken(res.token);
+    saveUser(res.user);
+    return { user: res.user };
+  }
+  return res;
 }
 
-export function authenticate(email, password) {
-  const db = loadDb();
-  const normalizedEmail = String(email || "").trim().toLowerCase();
-  const cleanPass = String(password || "").trim();
-  const user = db.users.find(u => u.email === normalizedEmail && u.password === cleanPass);
-  if (!user) return { error: "invalid_credentials" };
-  db.session.currentUserId = user.id;
-  saveDb(db);
-  return { user };
+export async function authenticate(email, password) {
+  const payload = {
+    email: String(email || "").trim().toLowerCase(),
+    password: String(password || "").trim(),
+  };
+  const res = await apiRequest("/api/auth/login", { method: "POST", body: payload });
+  if (res?.token && res?.user) {
+    setToken(res.token);
+    saveUser(res.user);
+    return { user: res.user };
+  }
+  return res;
 }
 
 export function getCurrentUser() {
-  const db = loadDb();
-  const id = db.session?.currentUserId;
-  if (!id) return null;
-  return db.users.find(u => u.id === id) || null;
+  return loadUser();
+}
+
+export async function fetchCurrentUser() {
+  if (!getToken()) return null;
+  const res = await apiRequest("/api/auth/me");
+  if (res?.user) {
+    saveUser(res.user);
+    return res.user;
+  }
+  if (res?.error) {
+    clearSession();
+    return null;
+  }
+  return null;
 }
 
 export function isAdminUser() {
@@ -83,42 +74,46 @@ export function isAdminUser() {
   return email === "asd@asd.com.ar";
 }
 
-export function updateUserProfile({ id, name, avatar }) {
-  const db = loadDb();
-  const idx = db.users.findIndex(u => u.id === id);
-  if (idx < 0) return { error: "not_found" };
+export async function updateUserProfile({ id, name, avatar }) {
+  const payload = {};
   const cleanName = String(name || "").trim();
-  const next = { ...db.users[idx] };
-  if (cleanName) next.name = cleanName;
-  if (avatar !== undefined) next.avatar = avatar;
-  db.users[idx] = next;
-  saveDb(db);
-  return { user: next };
+  if (cleanName) payload.name = cleanName;
+  if (avatar !== undefined) payload.avatar = avatar;
+  if (!Object.keys(payload).length) {
+    const cached = loadUser();
+    if (cached) return { user: cached };
+    return { error: "invalid_input" };
+  }
+  const res = await apiRequest("/api/auth/me", { method: "PATCH", body: payload });
+  if (res?.user) {
+    saveUser(res.user);
+    return { user: res.user };
+  }
+  if (!res?.error && id) {
+    const cached = loadUser();
+    if (cached) return { user: cached };
+  }
+  return res;
 }
 
-export function updateUserPassword({ id, password }) {
-  const db = loadDb();
-  const idx = db.users.findIndex(u => u.id === id);
-  if (idx < 0) return { error: "not_found" };
+export async function updateUserPassword({ id, password }) {
   const cleanPass = String(password || "").trim();
   if (!cleanPass) return { error: "invalid_input" };
-  db.users[idx] = { ...db.users[idx], password: cleanPass };
-  saveDb(db);
-  return { user: db.users[idx] };
+  const res = await apiRequest("/api/auth/me/password", { method: "PATCH", body: { password: cleanPass } });
+  if (res?.ok) return { ok: true };
+  if (!res?.error && id) return { ok: true };
+  return res;
 }
 
 export function clearSession() {
-  const db = loadDb();
-  db.session.currentUserId = null;
-  saveDb(db);
+  clearToken();
+  clearUser();
 }
 
 export function resetAuthToAdmin() {
-  const db = loadDb();
-  const admin = db.users.find(u => String(u.email || "").trim().toLowerCase() === "asd@asd.com.ar");
-  if (!admin) return { error: "admin_not_found" };
-  db.users = [admin];
-  db.session.currentUserId = admin.id;
-  saveDb(db);
+  const admin = getCurrentUser();
+  if (!admin || String(admin.email || "").trim().toLowerCase() !== "asd@asd.com.ar") {
+    return { error: "admin_not_found" };
+  }
   return { admin };
 }

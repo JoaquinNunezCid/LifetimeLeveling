@@ -1,9 +1,13 @@
 import { lifeForLevel } from "../core/leveling.js";
+import { apiRequest, getToken } from "./api.js";
 
 const LEGACY_KEY = "levelup_app_state";
 const LEGACY_MIGRATED_KEY = "levelup_legacy_migrated";
 const KEY_PREFIX = "levelup_user_state_";
 const SCHEMA = 1;
+const SAVE_DEBOUNCE_MS = 500;
+let pendingState = null;
+let saveTimer = null;
 
 function defaultTraining() {
   return [
@@ -144,6 +148,15 @@ export function loadState(userId) {
 export function saveState(userId, state) {
   if (!userId) return;
   localStorage.setItem(userKey(userId), JSON.stringify(state));
+  pendingState = state;
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    const snapshot = pendingState;
+    pendingState = null;
+    if (!snapshot || !getToken()) return;
+    void apiRequest("/api/state", { method: "PUT", body: { state: snapshot } });
+  }, SAVE_DEBOUNCE_MS);
 }
 
 export function resetUserState(userId, name) {
@@ -183,4 +196,18 @@ export function migrateLegacyState(userId) {
   localStorage.removeItem(LEGACY_KEY);
   localStorage.setItem(LEGACY_MIGRATED_KEY, "1");
   return migrated;
+}
+
+export async function fetchState() {
+  if (!getToken()) return null;
+  const res = await apiRequest("/api/state");
+  if (res?.state) return migrate(res.state);
+  return null;
+}
+
+export async function resetRemoteState(name) {
+  if (!getToken()) return null;
+  const res = await apiRequest("/api/state/reset", { method: "POST", body: { name } });
+  if (res?.state) return migrate(res.state);
+  return null;
 }
