@@ -5,6 +5,7 @@ import { getCurrentUser, isAdminUser, resetAuthToAdmin } from "../data/auth.js";
 import { clearUserStatesExcept, resetUserState } from "../data/storage.js";
 import { lockPageForModal, unlockPageForModal } from "./modalLock.js";
 import { showAchievementToasts } from "./achievementToasts.js";
+import { getAchievementTitle, getGoalLabel, getLanguage, t } from "../core/i18n.js";
 
 function escapeHTML(str) {
   return String(str)
@@ -42,14 +43,19 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   const monthPickerMonth = document.getElementById("monthPickerMonth");
   const monthPickerApply = document.getElementById("monthPickerApply");
   const monthPickerClose = document.getElementById("monthPickerClose");
+  const defeatModal = document.getElementById("defeatModal");
+  const defeatModalClose = document.getElementById("defeatModalClose");
+  const defeatModalRevive = document.getElementById("defeatModalRevive");
+  const defeatRevivePanel = document.getElementById("defeatRevivePanel");
+  const reviveBtn = document.getElementById("reviveBtn");
 
   const achievementsCount = document.getElementById("achievementsCount");
   const achievementsList = document.getElementById("achievementsList");
   const achievementCategories = [
-    { key: "level", label: "Niveles" },
-    { key: "streak", label: "Rachas" },
-    { key: "goals", label: "Objetivos diarios" },
-    { key: "actions", label: "Objetivos extra" },
+    { key: "level", label: "level" },
+    { key: "streak", label: "streak" },
+    { key: "goals", label: "goals" },
+    { key: "actions", label: "actions" },
   ];
 
   const goalsDoneSummary = document.getElementById("goalsDoneSummary");
@@ -59,6 +65,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   const skipTokenBtn = document.getElementById("skipTokenBtn");
   let lastXpValue = null;
   let xpAnimFrame = null;
+  let lastDefeatSeen = null;
 
   function animateXp(el, from, to) {
     if (!el) return;
@@ -100,6 +107,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     const delay = Math.max(1000, next.getTime() - now.getTime() + 50);
     dateRefreshTimer = setTimeout(() => {
       refreshTodayText(true);
+      store.dispatch({ type: "DEV_FORCE_RENDER" });
       scheduleNextDateRefresh();
     }, delay);
   }
@@ -111,20 +119,20 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   let viewYear = now.getFullYear();
   let viewMonth = now.getMonth();
 
-  const goalLabels = [
-    { key: "waterLiters", label: "Agua" },
-    { key: "calories", label: "Calorias" },
-    { key: "exerciseMinutes", label: "Ejercicio" },
-    { key: "readMinutes", label: "Leer" },
-    { key: "studyMinutes", label: "Estudiar" },
-    { key: "steps", label: "Pasos" },
+  const goalKeys = [
+    "waterLiters",
+    "calories",
+    "exerciseMinutes",
+    "readMinutes",
+    "studyMinutes",
+    "steps",
   ];
 
   btnEditName.addEventListener("click", () => {
     const current = store.getState().user?.name || "";
     openModal({
-      title: "Cambiar nombre",
-      placeholder: "Tu nombre",
+      title: t("modal.editNameTitle"),
+      placeholder: t("modal.namePlaceholder"),
       value: current,
       onOk: (value) => store.dispatch({ type: "USER_SET_NAME", payload: value }),
     });
@@ -211,10 +219,15 @@ export function mountDashboardView({ store, router, toast, openModal }) {
 
   function buildMonthOptions(startDate, year) {
     if (!monthPickerMonth) return;
-    const monthNames = [
-      "enero", "febrero", "marzo", "abril", "mayo", "junio",
-      "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
-    ];
+    const monthNames = getLanguage() === "en"
+      ? [
+          "january", "february", "march", "april", "may", "june",
+          "july", "august", "september", "october", "november", "december",
+        ]
+      : [
+          "enero", "febrero", "marzo", "abril", "mayo", "junio",
+          "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre",
+        ];
     const startYear = startDate.getFullYear();
     const startMonth = startDate.getMonth();
     const end = getNow();
@@ -263,11 +276,58 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     unlockPageForModal();
   }
 
+  function openDefeatModal() {
+    if (!defeatModal) return;
+    document.body.classList.add("defeatMode");
+    defeatModal.classList.add("show");
+    defeatModal.setAttribute("aria-hidden", "false");
+    lockPageForModal();
+    playDefeatSound();
+  }
+
+  function closeDefeatModal() {
+    if (!defeatModal) return;
+    defeatModal.classList.remove("show");
+    defeatModal.setAttribute("aria-hidden", "true");
+    unlockPageForModal();
+  }
+
+  function playDefeatSound() {
+    if (!window.AudioContext && !window.webkitAudioContext) return;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      const ctx = new AudioCtx();
+      if (ctx.state === "suspended") {
+        ctx.resume();
+      }
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(260, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.15, ctx.currentTime + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.6);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.6);
+      setTimeout(() => ctx.close(), 700);
+    } catch {
+      // Ignorar si el navegador bloquea audio automatico
+    }
+  }
+
+  function revive() {
+    store.dispatch({ type: "REVIVE" });
+    closeDefeatModal();
+  }
+
   function renderCalendar(state) {
     if (!calendarGrid || !calendarMonthBtn) return;
     const year = viewYear;
     const month = viewMonth;
-    const monthLabel = new Date(year, month, 1).toLocaleDateString("es-AR", {
+    const locale = getLanguage() === "en" ? "en-US" : "es-AR";
+    const monthLabel = new Date(year, month, 1).toLocaleDateString(locale, {
       month: "long",
       year: "numeric",
     });
@@ -280,7 +340,9 @@ export function mountDashboardView({ store, router, toast, openModal }) {
 
     calendarGrid.innerHTML = "";
     const frag = document.createDocumentFragment();
-    const weekday = ["L", "M", "X", "J", "V", "S", "D"];
+    const weekday = getLanguage() === "en"
+      ? ["M", "T", "W", "T", "F", "S", "S"]
+      : ["L", "M", "X", "J", "V", "S", "D"];
     weekday.forEach(w => {
       const el = document.createElement("div");
       el.className = "calendarHead";
@@ -295,6 +357,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     }
 
     const todayKey = todayLocalKey();
+    const defeatKey = state.life?.lastDefeatDate || "";
     for (let day = 1; day <= daysInMonth; day += 1) {
       const d = new Date(year, month, day);
       const key = dateKeyFromDate(d);
@@ -317,6 +380,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
       if (missionFailed) btn.classList.add("missionFailed");
       if (noActivity) btn.classList.add("noActivity");
       if (skipped) btn.classList.add("daySkipped");
+      if (defeatKey && key === defeatKey) btn.classList.add("dayDefeat");
       btn.dataset.dateKey = key;
       btn.textContent = String(day);
       frag.appendChild(btn);
@@ -328,7 +392,8 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   function openDayModal(state, key) {
     if (!dayModal || !dayModalTitle || !dayMissionText) return;
     const d = new Date(key + "T00:00:00");
-    dayModalTitle.textContent = d.toLocaleDateString("es-AR", {
+    const locale = getLanguage() === "en" ? "en-US" : "es-AR";
+    dayModalTitle.textContent = d.toLocaleDateString(locale, {
       weekday: "long",
       year: "numeric",
       month: "long",
@@ -336,26 +401,28 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     });
 
     const snapshot = getGoalsSnapshot(state, key);
-    if (snapshot.skipUsed) {
-      dayMissionText.textContent = "Dia salteado con token. La racha se mantiene.";
+    if (state.life?.lastDefeatDate && key === state.life.lastDefeatDate) {
+      dayMissionText.textContent = t("day.death");
+    } else if (snapshot.skipUsed) {
+      dayMissionText.textContent = t("day.skipText");
     } else {
       dayMissionText.textContent = isMissionComplete(snapshot.goals, snapshot.goalsDone, snapshot.skipUsed)
-        ? "Mision cumplida, se completaron con exito todas las misiones diarias."
-        : "Mision fallida, faltaron misiones diarias por completar.";
+        ? t("day.missionSuccess")
+        : t("day.missionFail");
     }
 
     if (dayActionsDone && dayActionsMissing) {
       const goals = snapshot.goals || {};
       const done = snapshot.goalsDone || {};
-      const activeKeys = goalLabels.map(g => g.key).filter(k => Number(goals[k] ?? 0) > 0);
-      const doneLabels = activeKeys.filter(k => done[k]).map(k => goalLabels.find(g => g.key === k)?.label || k);
-      const missingLabels = activeKeys.filter(k => !done[k]).map(k => goalLabels.find(g => g.key === k)?.label || k);
+      const activeKeys = goalKeys.filter(k => Number(goals[k] ?? 0) > 0);
+      const doneLabels = activeKeys.filter(k => done[k]).map(k => getGoalLabel(k));
+      const missingLabels = activeKeys.filter(k => !done[k]).map(k => getGoalLabel(k));
 
       dayActionsDone.innerHTML = "";
       dayActionsMissing.innerHTML = "";
 
       if (!doneLabels.length) {
-        dayActionsDone.innerHTML = `<li><span class="muted">No completaste objetivos.</span></li>`;
+        dayActionsDone.innerHTML = `<li><span class="muted">${escapeHTML(t("day.noneDone"))}</span></li>`;
       } else {
         const frag = document.createDocumentFragment();
         doneLabels.forEach(label => {
@@ -367,7 +434,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
       }
 
       if (!missingLabels.length) {
-        dayActionsMissing.innerHTML = `<li><span class="muted">Sin objetivos pendientes.</span></li>`;
+        dayActionsMissing.innerHTML = `<li><span class="muted">${escapeHTML(t("day.noneMissing"))}</span></li>`;
       } else {
         const frag = document.createDocumentFragment();
         missingLabels.forEach(label => {
@@ -392,6 +459,16 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   }
 
   function render(state) {
+    const defeatDate = state.life?.lastDefeatDate || "";
+    if (lastDefeatSeen === null) {
+      lastDefeatSeen = defeatDate;
+      if ((Number(state.life?.current) || 0) <= 0) {
+        openDefeatModal();
+      }
+    } else if (defeatDate && defeatDate !== lastDefeatSeen) {
+      lastDefeatSeen = defeatDate;
+      openDefeatModal();
+    }
     userName.textContent = state.user?.name || "Invitado";
 
     const level = state.progress.level;
@@ -413,14 +490,24 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     xpNeedDash.textContent = String(xpNeed);
     if (xpBarLabel) {
       const remaining = Math.max(0, xpNeed - xp);
-      xpBarLabel.textContent = `XP ${xp}/${xpNeed} (faltan ${remaining})`;
+      xpBarLabel.textContent = t("dashboard.xpLabel", { current: xp, total: xpNeed, remaining });
     }
-    const life = lifeForLevel(level);
-    if (lifeDash) lifeDash.textContent = String(life);
+    const maxLife = lifeForLevel(level);
+    const currentLife = Number.isFinite(Number(state.life?.current)) ? Number(state.life?.current) : maxLife;
+    const safeLife = Math.max(0, Math.min(maxLife, currentLife));
+    const isDefeated = safeLife <= 0;
+    if (isDefeated) {
+      document.body.classList.add("defeatMode");
+    } else {
+      document.body.classList.remove("defeatMode");
+    }
+    if (defeatRevivePanel) defeatRevivePanel.hidden = !isDefeated;
+    if (lifeDash) lifeDash.textContent = String(safeLife);
     if (lifeBarDash) {
-      lifeBarDash.style.width = "100%";
+      const lifePct = maxLife > 0 ? Math.round((safeLife / maxLife) * 100) : 0;
+      lifeBarDash.style.width = `${lifePct}%`;
     }
-    if (lifeBarLabel) lifeBarLabel.textContent = `${life}/${life}`;
+    if (lifeBarLabel) lifeBarLabel.textContent = `${safeLife}/${maxLife}`;
 
     const pct = Math.max(0, Math.min(100, (xp / xpNeed) * 100));
     xpBarDash.style.width = pct + "%";
@@ -437,26 +524,26 @@ export function mountDashboardView({ store, router, toast, openModal }) {
       );
       skipTokenBtn.disabled = tokens <= 0 || used || missionComplete;
       if (used) {
-        skipTokenBtn.textContent = "Token usado hoy";
+        skipTokenBtn.textContent = t("skip.usedLabel");
       } else if (missionComplete) {
-        skipTokenBtn.textContent = "Objetivo cumplido";
+        skipTokenBtn.textContent = t("skip.completeLabel");
       } else {
-        skipTokenBtn.textContent = "Usar token";
+        skipTokenBtn.textContent = t("skip.useLabel");
       }
     }
 
     if (goalsDoneSummary && goalsMissingSummary) {
       const goals = state.goals || {};
       const done = state.daily?.goalsDone || {};
-      const activeKeys = goalLabels.map(g => g.key).filter(k => Number(goals[k] ?? 0) > 0);
-      const doneLabels = activeKeys.filter(k => done[k]).map(k => goalLabels.find(g => g.key === k)?.label || k);
-      const missingLabels = activeKeys.filter(k => !done[k]).map(k => goalLabels.find(g => g.key === k)?.label || k);
+      const activeKeys = goalKeys.filter(k => Number(goals[k] ?? 0) > 0);
+      const doneLabels = activeKeys.filter(k => done[k]).map(k => getGoalLabel(k));
+      const missingLabels = activeKeys.filter(k => !done[k]).map(k => getGoalLabel(k));
 
       goalsDoneSummary.innerHTML = "";
       goalsMissingSummary.innerHTML = "";
 
       if (!doneLabels.length) {
-        goalsDoneSummary.innerHTML = `<li><span class="muted">No completaste objetivos.</span></li>`;
+        goalsDoneSummary.innerHTML = `<li><span class="muted">${escapeHTML(t("day.noneDone"))}</span></li>`;
       } else {
         const frag = document.createDocumentFragment();
         doneLabels.forEach(label => {
@@ -468,7 +555,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
       }
 
       if (!missingLabels.length) {
-        goalsMissingSummary.innerHTML = `<li><span class="muted">Sin objetivos pendientes.</span></li>`;
+        goalsMissingSummary.innerHTML = `<li><span class="muted">${escapeHTML(t("day.noneMissing"))}</span></li>`;
       } else {
         const frag = document.createDocumentFragment();
         missingLabels.forEach(label => {
@@ -488,7 +575,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
       achievementsCount.textContent = String(ach.length);
       achievementsList.innerHTML = "";
       if (!ach.length) {
-        achievementsList.innerHTML = `<li><span class="muted">Aun no tienes logros. Sigue sumando XP.</span></li>`;
+        achievementsList.innerHTML = `<li><span class="muted">${escapeHTML(t("achievements.empty"))}</span></li>`;
       } else {
         const fragAch = document.createDocumentFragment();
         achievementCategories.forEach((category) => {
@@ -501,20 +588,21 @@ export function mountDashboardView({ store, router, toast, openModal }) {
           const li = document.createElement("li");
           li.className = "achievementSummary";
           if (topEarned) {
+            const title = getAchievementTitle(topEarned.id, topEarned.title);
             li.innerHTML = `
               <div class="achievementSummaryHeader">
-                <span class="achievementSummaryTitle">${escapeHTML(category.label)}</span>
-                <span class="pill">Logro maximo</span>
+                <span class="achievementSummaryTitle">${escapeHTML(t(`achievement.${category.key}`))}</span>
+                <span class="pill">${escapeHTML(t("achievements.max"))}</span>
               </div>
-              <p class="achievementSummaryText">${escapeHTML(topEarned.title)}</p>
+              <p class="achievementSummaryText">${escapeHTML(title)}</p>
             `;
           } else {
             li.innerHTML = `
               <div class="achievementSummaryHeader">
-                <span class="achievementSummaryTitle">${escapeHTML(category.label)}</span>
-                <span class="pill muted">Sin logros</span>
+                <span class="achievementSummaryTitle">${escapeHTML(t(`achievement.${category.key}`))}</span>
+                <span class="pill muted">${escapeHTML(t("achievements.none"))}</span>
               </div>
-              <p class="achievementSummaryText muted">Todavia no sumaste logros en esta categoria.</p>
+              <p class="achievementSummaryText muted">${escapeHTML(t("achievements.noneDetail"))}</p>
             `;
           }
           fragAch.appendChild(li);
@@ -567,6 +655,16 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     monthPickerClose.addEventListener("click", () => closeMonthPicker());
   }
 
+  if (defeatModalClose) {
+    defeatModalClose.addEventListener("click", () => closeDefeatModal());
+  }
+  if (defeatModalRevive) {
+    defeatModalRevive.addEventListener("click", () => revive());
+  }
+  if (reviveBtn) {
+    reviveBtn.addEventListener("click", () => revive());
+  }
+
   if (skipTokenBtn) {
     skipTokenBtn.addEventListener("click", () => {
       const state = store.getState();
@@ -578,29 +676,33 @@ export function mountDashboardView({ store, router, toast, openModal }) {
         todaySnapshot.skipUsed,
       );
       if (tokens <= 0) {
-        toast?.show("No tienes tokens disponibles.");
+        toast?.show(t("skip.noTokens"));
         return;
       }
       if (missionComplete) {
-        toast?.show("Ya completaste el objetivo de hoy.");
+        toast?.show(t("skip.alreadyComplete"));
         return;
       }
       if (state.daily?.skipUsed) {
-        toast?.show("Ya usaste un token hoy.");
+        toast?.show(t("skip.alreadyUsed"));
         return;
       }
-      const confirmed = window.confirm("Usar 1 token para saltear hoy y mantener la racha?");
+      const confirmed = window.confirm(t("skip.confirm"));
       if (!confirmed) return;
       const res = store.dispatch({ type: "DAILY_SKIP" });
       if (res?.error === "no_tokens") {
-        toast?.show("No tienes tokens disponibles.");
+        toast?.show(t("skip.noTokens"));
+        return;
+      }
+      if (res?.error === "dead") {
+        toast?.show(t("dead.blocked"));
         return;
       }
       if (res?.error === "already_used") {
-        toast?.show("Ya usaste un token hoy.");
+        toast?.show(t("skip.alreadyUsed"));
         return;
       }
-      toast?.show("Dia salteado con token.");
+      toast?.show(t("skip.done"));
       showAchievementToasts(toast, res?.achievementsEarned, 2600);
     });
   }
@@ -619,28 +721,28 @@ export function mountDashboardView({ store, router, toast, openModal }) {
         const res = store.dispatch({ type: "DEV_LEVEL_UP" });
         if (res?.levelUps?.length) {
           const last = res.levelUps[res.levelUps.length - 1];
-          toast?.show(`Subiste a nivel ${last}`);
+          toast?.show(t("level.up", { level: last }));
         }
         showAchievementToasts(toast, res?.achievementsEarned, 2600);
         return;
       }
       if (action === "reset-accounts") {
-        const confirmed = window.confirm("Resetear todas las cuentas? Se mantiene solo el admin.");
+        const confirmed = window.confirm(t("admin.resetConfirm"));
         if (!confirmed) return;
         const adminUser = getCurrentUser();
         if (!adminUser) {
-          toast?.show("No se encontro el admin.");
+          toast?.show(t("admin.notFound"));
           return;
         }
         const authRes = resetAuthToAdmin();
         if (authRes?.error) {
-          toast?.show("No se encontro el admin.");
+          toast?.show(t("admin.notFound"));
           return;
         }
         clearUserStatesExcept(adminUser.id);
         resetUserState(adminUser.id, adminUser.name);
         localStorage.removeItem("levelup_admin_now");
-        toast?.show("Cuentas reseteadas.");
+        toast?.show(t("admin.resetDone"));
         setTimeout(() => window.location.reload(), 400);
         return;
       }
@@ -670,5 +772,19 @@ export function mountDashboardView({ store, router, toast, openModal }) {
   }
 
   render(store.getState());
-  return store.subscribe(render);
+  const onLanguageChange = () => {
+    refreshTodayText(true);
+    render(store.getState());
+    if (monthPickerYear && monthPickerMonth && monthPickerModal?.classList.contains("show")) {
+      const startDate = getStartDate();
+      const year = Number(monthPickerYear.value);
+      buildMonthOptions(startDate, year);
+    }
+  };
+  window.addEventListener("languagechange", onLanguageChange);
+  const unsubscribe = store.subscribe(render);
+  return () => {
+    unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
+  };
 }

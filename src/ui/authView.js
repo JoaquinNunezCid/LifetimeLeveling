@@ -1,4 +1,5 @@
 import { authenticate, createUser } from "../data/auth.js";
+import { t } from "../core/i18n.js";
 
 function setError(el, msg) {
   if (!el) return;
@@ -13,9 +14,9 @@ function isValidEmail(email) {
 function passwordIssues(password) {
   const pwd = String(password || "");
   const issues = [];
-  if (pwd.length < 8) issues.push("minimo 8 caracteres");
-  if (!/[A-Za-z]/.test(pwd)) issues.push("al menos una letra");
-  if (!/\d/.test(pwd)) issues.push("al menos un numero");
+  if (pwd.length < 8) issues.push(t("password.minLength"));
+  if (!/[A-Za-z]/.test(pwd)) issues.push(t("password.letter"));
+  if (!/\d/.test(pwd)) issues.push(t("password.number"));
   return issues;
 }
 
@@ -53,7 +54,7 @@ export function mountAuthView({ router, toast, onAuth }) {
       if (!input) return;
       const nextType = input.type === "password" ? "text" : "password";
       input.type = nextType;
-      btn.textContent = nextType === "password" ? "Ver" : "Ocultar";
+      btn.textContent = nextType === "password" ? t("auth.show") : t("auth.hide");
       btn.setAttribute("aria-pressed", nextType !== "password");
     });
   });
@@ -66,18 +67,18 @@ export function mountAuthView({ router, toast, onAuth }) {
       const email = document.getElementById("loginEmail")?.value || "";
       const password = document.getElementById("loginPassword")?.value || "";
       if (!isValidEmail(email)) {
-        setError(loginError, "Ingresa un email valido.");
+        setError(loginError, t("auth.invalidEmail"));
         return;
       }
       if (!String(password || "").trim()) {
-        setError(loginError, "Ingresa tu password.");
+        setError(loginError, t("auth.passwordRequired"));
         return;
       }
       const res = authenticate(email, password);
 
       if (res?.error) {
-        setError(loginError, "Credenciales invalidas.");
-        toast?.show?.("No se pudo iniciar sesion");
+        setError(loginError, t("auth.invalidCredentials"));
+        toast?.show?.(t("auth.loginFailed"));
         return;
       }
 
@@ -96,32 +97,32 @@ export function mountAuthView({ router, toast, onAuth }) {
       const email = document.getElementById("signupEmail")?.value || "";
       const password = document.getElementById("signupPassword")?.value || "";
       if (!isValidEmail(email)) {
-        setError(signupError, "Ingresa un email valido.");
+        setError(signupError, t("auth.invalidEmail"));
         return;
       }
       const issues = passwordIssues(password);
       if (issues.length) {
-        setError(signupError, `Password debil: ${issues.join(", ")}.`);
+        setError(signupError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
       const res = createUser({ name, email, password });
 
       if (res?.error === "email_taken") {
-        setError(signupError, "El email ya esta registrado.");
-        toast?.show?.("Email en uso");
+        setError(signupError, t("auth.emailTaken"));
+        toast?.show?.(t("auth.emailInUse"));
         return;
       }
 
       if (res?.error) {
-        setError(signupError, "Completa los campos.");
-        toast?.show?.("No se pudo crear la cuenta");
+        setError(signupError, t("auth.signupFields"));
+        toast?.show?.(t("auth.signupFailed"));
         return;
       }
 
       const loginRes = authenticate(email, password);
       if (loginRes?.error) {
-        setError(signupError, "Cuenta creada, pero no se pudo iniciar sesion.");
-        toast?.show?.("Inicia sesion");
+        setError(signupError, t("auth.signupLoginFailed"));
+        toast?.show?.(t("auth.loginNow"));
         return;
       }
 

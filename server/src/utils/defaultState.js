@@ -26,6 +26,7 @@ export function defaultState({ name } = {}) {
     schema: SCHEMA,
     user: { name: name || "Invitado" },
     progress: { level: 1, xp: 0 },
+    life: { current: 100, lastPenaltyDate: "", lastDefeatDate: "" },
     tokens: 0,
     daily: { date: "", actions: {}, bonusCategories: {}, goalsDone: {}, skipUsed: false },
     history: { days: {} },

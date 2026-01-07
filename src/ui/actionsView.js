@@ -1,6 +1,7 @@
 import { actionsByCategory, getActionByKey, getCategoryForAction } from "../core/actionsCatalog.js";
 import { xpMultiplier, xpNeeded } from "../core/leveling.js";
 import { showAchievementToasts } from "./achievementToasts.js";
+import { getActionLabel, getCategoryLabel, getGoalLabel, t } from "../core/i18n.js";
 
 export function mountActionsView({ store, toast }) {
   const levelEl = document.getElementById("levelActions");
@@ -43,10 +44,10 @@ export function mountActionsView({ store, toast }) {
   };
 
   const unlockLabelByGoal = {
-    exerciseMinutes: "Ejercicio",
-    steps: "Pasos",
-    studyMinutes: "Estudiar",
-    readMinutes: "Leer",
+    exerciseMinutes: "exerciseMinutes",
+    steps: "steps",
+    studyMinutes: "studyMinutes",
+    readMinutes: "readMinutes",
   };
 
   function isCategoryUnlocked(category, state) {
@@ -57,9 +58,10 @@ export function mountActionsView({ store, toast }) {
 
   function getUnlockMessage(category) {
     const goalKey = unlockByCategory[category];
-    if (!goalKey) return "Completa el objetivo principal de esta categoria.";
-    const label = unlockLabelByGoal[goalKey] || "objetivo principal";
-    return `Primero completa el objetivo principal: ${label}.`;
+    if (!goalKey) return t("actions.locked");
+    const labelKey = unlockLabelByGoal[goalKey] || goalKey;
+    const label = getGoalLabel(labelKey);
+    return t("actions.lockedWith", { label });
   }
 
   function renderActions(state) {
@@ -74,7 +76,7 @@ export function mountActionsView({ store, toast }) {
       const unlocked = isCategoryUnlocked(category, state);
       const section = document.createElement("div");
       section.className = "actionGroup";
-      section.innerHTML = `<h3>${category}</h3>`;
+      section.innerHTML = `<h3>${getCategoryLabel(category)}</h3>`;
 
       const row = document.createElement("div");
       row.className = "actionRow";
@@ -83,7 +85,7 @@ export function mountActionsView({ store, toast }) {
         const scaledXp = Math.round(item.xp * multiplier);
         const label = document.createElement("span");
         label.className = "actionLabel";
-        label.textContent = item.label;
+        label.textContent = getActionLabel(item);
         const xp = document.createElement("span");
         xp.className = "actionXp";
         xp.textContent = `+${scaledXp} XP`;
@@ -148,31 +150,41 @@ export function mountActionsView({ store, toast }) {
       return;
     }
     if (btn.dataset.done === "1") {
-      toast.show("Ya hiciste esta accion hoy");
+      toast.show(t("actions.alreadyDone"));
       return;
     }
 
     const res = store.dispatch({ type: "DAILY_DO_ACTION", payload: btn.dataset.doAction });
 
     if (res?.error === "already_done") {
-      toast.show("Ya hiciste esta accion hoy");
+      toast.show(t("actions.alreadyDone"));
+      return;
+    }
+    if (res?.error === "dead") {
+      toast.show(t("dead.blocked"));
       return;
     }
 
     const meta = getActionByKey(btn.dataset.doAction);
     const gained = Number.isFinite(res?.xpGained) ? res.xpGained : 0;
     if (meta) {
-      toast.show(`Accion registrada: ${meta.label} (+${gained} XP)`);
+      toast.show(t("actions.logged", { label: getActionLabel(meta), xp: gained }));
     } else {
-      toast.show(`Accion registrada (+${gained} XP)`);
+      toast.show(t("actions.loggedGeneric", { xp: gained }));
     }
 
     if (res?.levelUps?.length) {
-      toast.show(`Subiste a nivel ${res.levelUps[res.levelUps.length - 1]}`, 2500);
+      toast.show(t("level.up", { level: res.levelUps[res.levelUps.length - 1] }), 2500);
     }
     showAchievementToasts(toast, res?.achievementsEarned, 2600);
   });
 
   render(store.getState());
-  return store.subscribe(render);
+  const onLanguageChange = () => render(store.getState());
+  window.addEventListener("languagechange", onLanguageChange);
+  const unsubscribe = store.subscribe(render);
+  return () => {
+    unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
+  };
 }

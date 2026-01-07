@@ -1,4 +1,5 @@
 import { isAdminUser } from "../data/auth.js";
+import { getLanguage } from "./i18n.js";
 
 export function getNow() {
   if (isAdminUser()) {
@@ -20,7 +21,8 @@ export function todayLocalKey() {
 }
 
 export function todayLongES() {
-  return getNow().toLocaleDateString("es-AR", {
+  const locale = getLanguage() === "en" ? "en-US" : "es-AR";
+  return getNow().toLocaleDateString(locale, {
     weekday: "long",
     year: "numeric",
     month: "long",

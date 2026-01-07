@@ -1,3 +1,5 @@
+import { t } from "../core/i18n.js";
+
 export function mountGoalsEditView({ store, toast }) {
   const form = document.getElementById("goalsForm");
   const water = document.getElementById("goalWater");
@@ -45,7 +47,7 @@ export function mountGoalsEditView({ store, toast }) {
   form.addEventListener("submit", (e) => {
     e.preventDefault();
     updateGoals();
-    toast?.show?.("Objetivos guardados");
+    toast?.show?.(t("goals.saved"));
   });
 
   [water, calories, exercise, read, study, steps].forEach(input => {

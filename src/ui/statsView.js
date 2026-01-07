@@ -1,6 +1,7 @@
 import { todayLocalKey } from "../core/date.js";
 import { getActionByKey } from "../core/actionsCatalog.js";
 import { lifeForLevel } from "../core/leveling.js";
+import { t } from "../core/i18n.js";
 
 const POINTS_PER_LEVEL = 10;
 
@@ -74,11 +75,11 @@ export function mountStatsView({ store }) {
     const wisdomScore = read * 2 + actionDays.Lectura * 2;
 
     const stats = [
-      { key: "strength", label: "Fuerza", hint: "Ejercicio y entrenamiento", score: strengthScore },
-      { key: "dexterity", label: "Destreza", hint: "Ejercicio y pasos", score: dexterityScore },
-      { key: "constitution", label: "Constitucion", hint: "Pasos y agua", score: constitutionScore },
-      { key: "intelligence", label: "Inteligencia", hint: "Estudio", score: intelligenceScore },
-      { key: "wisdom", label: "Sabiduria", hint: "Lectura", score: wisdomScore },
+      { key: "strength", label: t("stats.strength"), hint: t("stats.strengthHint"), score: strengthScore },
+      { key: "dexterity", label: t("stats.dexterity"), hint: t("stats.dexterityHint"), score: dexterityScore },
+      { key: "constitution", label: t("stats.constitution"), hint: t("stats.constitutionHint"), score: constitutionScore },
+      { key: "intelligence", label: t("stats.intelligence"), hint: t("stats.intelligenceHint"), score: intelligenceScore },
+      { key: "wisdom", label: t("stats.wisdom"), hint: t("stats.wisdomHint"), score: wisdomScore },
     ];
 
     listEl.innerHTML = "";
@@ -94,8 +95,8 @@ export function mountStatsView({ store }) {
             <p class="muted statHint">${stat.hint}</p>
           </div>
           <div class="statMeta">
-            <span class="statLevel">Nivel ${level}</span>
-            <span class="statPoints">${stat.score} pts</span>
+            <span class="statLevel">${t("stats.level", { level })}</span>
+            <span class="statPoints">${t("stats.points", { points: stat.score })}</span>
           </div>
         </div>
         <div class="barra statBar">
@@ -109,5 +110,11 @@ export function mountStatsView({ store }) {
   }
 
   render(store.getState());
-  return store.subscribe(render);
+  const onLanguageChange = () => render(store.getState());
+  window.addEventListener("languagechange", onLanguageChange);
+  const unsubscribe = store.subscribe(render);
+  return () => {
+    unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
+  };
 }

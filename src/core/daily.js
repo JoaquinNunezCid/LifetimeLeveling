@@ -20,7 +20,6 @@ export function ensureDaily(dailyState) {
   if (typeof dailyState.skipUsed !== "boolean") {
     return { ...dailyState, skipUsed: false };
   }
-
   return dailyState;
 }
 

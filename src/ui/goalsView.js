@@ -1,5 +1,6 @@
 import { xpNeeded } from "../core/leveling.js";
 import { showAchievementToasts } from "./achievementToasts.js";
+import { getGoalLabel, t } from "../core/i18n.js";
 
 export function mountGoalsView({ store, toast, router }) {
   const completeList = document.getElementById("goalsCompleteList");
@@ -35,12 +36,12 @@ export function mountGoalsView({ store, toast, router }) {
   if (!completeList) return;
 
   const goalItems = [
-    { key: "exerciseMinutes", label: "Ejercicio (min)" },
-    { key: "steps", label: "Pasos" },
-    { key: "studyMinutes", label: "Estudiar (min)" },
-    { key: "readMinutes", label: "Leer (min)" },
-    { key: "calories", label: "Calorias del dia" },
-    { key: "waterLiters", label: "Agua (litros)" },
+    { key: "exerciseMinutes" },
+    { key: "steps" },
+    { key: "studyMinutes" },
+    { key: "readMinutes" },
+    { key: "calories" },
+    { key: "waterLiters" },
   ];
 
   function render(state) {
@@ -72,14 +73,15 @@ export function mountGoalsView({ store, toast, router }) {
     const frag = document.createDocumentFragment();
     goalItems.forEach(item => {
       const value = Number(goals[item.key] ?? 0);
+      const label = getGoalLabel(item.key, { full: true });
       const li = document.createElement("li");
       const disabled = value <= 0;
       const isDone = !!done[item.key];
       const stateClass = isDone ? "done" : (disabled ? "disabled" : "pending");
       li.innerHTML = `
-        <span class="text">${item.label}: ${value || 0}</span>
+        <span class="text">${label}: ${value || 0}</span>
         <button class="checkBtn ${stateClass}" data-goal-complete="${item.key}" ${isDone ? "data-checked=\"true\"" : ""}>
-          ${disabled ? "Agregar" : '<span class="checkBox" aria-hidden="true"></span>'}
+          ${disabled ? t("goals.add") : '<span class="checkBox" aria-hidden="true"></span>'}
         </button>
       `;
       frag.appendChild(li);
@@ -99,18 +101,28 @@ export function mountGoalsView({ store, toast, router }) {
     }
     const res = store.dispatch({ type: "GOAL_COMPLETE", payload: key });
     if (res?.error === "already_done") {
-      toast?.show?.("Ya completaste este objetivo hoy");
+      toast?.show?.(t("goals.alreadyDone"));
+      return;
+    }
+    if (res?.error === "dead") {
+      toast?.show?.(t("dead.blocked"));
       return;
     }
     if (res?.error === "not_set") {
-      toast?.show?.("Define un valor para este objetivo");
+      toast?.show?.(t("goals.notSet"));
       return;
     }
     const gained = Number.isFinite(res?.xpGained) ? res.xpGained : 0;
-    toast?.show?.(`Objetivo completado: +${gained} XP`);
+    toast?.show?.(t("goals.completed", { xp: gained }));
     showAchievementToasts(toast, res?.achievementsEarned, 2600);
   });
 
   render(store.getState());
-  return store.subscribe(render);
+  const onLanguageChange = () => render(store.getState());
+  window.addEventListener("languagechange", onLanguageChange);
+  const unsubscribe = store.subscribe(render);
+  return () => {
+    unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
+  };
 }

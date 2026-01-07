@@ -1,3 +1,5 @@
+import { lifeForLevel } from "../core/leveling.js";
+
 const LEGACY_KEY = "levelup_app_state";
 const LEGACY_MIGRATED_KEY = "levelup_legacy_migrated";
 const KEY_PREFIX = "levelup_user_state_";
@@ -5,10 +7,10 @@ const SCHEMA = 1;
 
 function defaultTraining() {
   return [
-    { id: "flexiones", name: "Flexiones", reps: "3x12" },
-    { id: "sentadillas", name: "Sentadillas", reps: "4x15" },
-    { id: "plancha", name: "Plancha", reps: "3x30s" },
-    { id: "abdominales", name: "Abdominales", reps: "3x20" },
+    { id: "flexiones", name: "Flexiones", reps: "3x12", done: 0 },
+    { id: "sentadillas", name: "Sentadillas", reps: "4x15", done: 0 },
+    { id: "plancha", name: "Plancha", reps: "3x30s", done: 0 },
+    { id: "abdominales", name: "Abdominales", reps: "3x20", done: 0 },
   ];
 }
 
@@ -29,6 +31,7 @@ function defaultState() {
     schema: SCHEMA,
     user: { name: "Invitado" },
     progress: { level: 1, xp: 0 },
+    life: { current: lifeForLevel(1), lastPenaltyDate: "", lastDefeatDate: "" },
     tokens: 0,
     daily: { date: "", actions: {}, bonusCategories: {}, goalsDone: {}, skipUsed: false }, // se normaliza con ensureDaily()
     history: { days: {} },
@@ -59,6 +62,14 @@ function migrate(state) {
 
   if (!s.user || typeof s.user.name !== "string") s.user = base.user;
   if (!s.progress || typeof s.progress.level !== "number" || typeof s.progress.xp !== "number") s.progress = base.progress;
+  if (!s.life || typeof s.life !== "object") {
+    s.life = { ...base.life, current: lifeForLevel(s.progress?.level || 1) };
+  } else {
+    const current = Number(s.life.current);
+    s.life.current = Number.isFinite(current) ? current : lifeForLevel(s.progress?.level || 1);
+    if (typeof s.life.lastPenaltyDate !== "string") s.life.lastPenaltyDate = "";
+    if (typeof s.life.lastDefeatDate !== "string") s.life.lastDefeatDate = "";
+  }
   if (!Number.isFinite(s.tokens)) s.tokens = base.tokens;
   if (!s.daily || typeof s.daily !== "object") s.daily = base.daily;
   if (!s.daily.bonusCategories || typeof s.daily.bonusCategories !== "object") {
@@ -89,6 +100,14 @@ function migrate(state) {
   const trainingDays = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
   trainingDays.forEach((day) => {
     if (!Array.isArray(s.training[day])) s.training[day] = [];
+    s.training[day] = s.training[day].map((item) => {
+      if (!item || typeof item !== "object") return { id: String(Date.now()), name: "", reps: "", done: 0 };
+      const done = Number(item.done ?? 0);
+      return {
+        ...item,
+        done: Number.isFinite(done) && done >= 0 ? Math.floor(done) : 0,
+      };
+    });
   });
   if (!Array.isArray(s.achievements)) s.achievements = base.achievements;
 

@@ -12,6 +12,7 @@ import { mountGoalsEditView } from "./ui/goalsEditView.js";
 import { lockPageForModal, unlockPageForModal } from "./ui/modalLock.js";
 import { clearSession, getCurrentUser, updateUserPassword, updateUserProfile } from "./data/auth.js";
 import { migrateLegacyState } from "./data/storage.js";
+import { applyTranslations, getLanguage, setLanguage, t } from "./core/i18n.js";
 
 function createModal() {
   const modal = document.getElementById("modal");
@@ -21,7 +22,7 @@ function createModal() {
   const btnCancel = document.getElementById("modalCancel");
 
   function open({ title, placeholder, value = "", onOk }) {
-    titleEl.textContent = title || "—";
+    titleEl.textContent = title || t("settings.title");
     inputEl.placeholder = placeholder || "";
     inputEl.value = value;
 
@@ -138,6 +139,16 @@ const settingsCancel = document.getElementById("settingsCancel");
 const btnOpenGoals = document.getElementById("btnOpenGoals");
 const btnNavToggle = document.getElementById("btnNavToggle");
 const primaryNav = document.getElementById("primaryNav");
+const languageToggle = document.getElementById("languageToggle");
+
+function updatePasswordToggleLabels() {
+  document.querySelectorAll("[data-toggle-password]").forEach(btn => {
+    const targetId = btn.dataset.togglePassword;
+    const input = document.getElementById(targetId);
+    if (!input) return;
+    btn.textContent = input.type === "password" ? t("auth.show") : t("auth.hide");
+  });
+}
 
 function setError(el, msg) {
   if (!el) return;
@@ -148,9 +159,9 @@ function setError(el, msg) {
 function passwordIssues(password) {
   const pwd = String(password || "");
   const issues = [];
-  if (pwd.length < 8) issues.push("minimo 8 caracteres");
-  if (!/[A-Za-z]/.test(pwd)) issues.push("al menos una letra");
-  if (!/\d/.test(pwd)) issues.push("al menos un numero");
+  if (pwd.length < 8) issues.push(t("password.minLength"));
+  if (!/[A-Za-z]/.test(pwd)) issues.push(t("password.letter"));
+  if (!/\d/.test(pwd)) issues.push(t("password.number"));
   return issues;
 }
 
@@ -260,6 +271,7 @@ function openSettingsModal() {
   if (settingsName) settingsName.value = user?.name || "";
   if (settingsPassword) settingsPassword.value = "";
   if (settingsAvatar) settingsAvatar.value = "";
+  if (languageToggle) languageToggle.checked = getLanguage() === "en";
   setError(settingsError, "");
   settingsModal.classList.add("show");
   settingsModal.setAttribute("aria-hidden", "false");
@@ -304,7 +316,7 @@ if (settingsForm) {
     if (password) {
       const issues = passwordIssues(password);
       if (issues.length) {
-        setError(settingsError, `Password debil: ${issues.join(", ")}.`);
+        setError(settingsError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
       updateUserPassword({ id: user.id, password });
@@ -321,21 +333,33 @@ if (settingsForm) {
       resizeImageFile(file).then((dataUrl) => {
         const res = updateUserProfile({ id: user.id, avatar: dataUrl });
         if (res?.user) setAvatar(res.user);
-        toast.show("Configuracion guardada");
+        toast.show(t("toast.settingsSaved"));
         closeSettingsModal();
       }).catch(() => {
-        setError(settingsError, "No se pudo procesar la imagen.");
+        setError(settingsError, t("toast.imageFail"));
       });
       return;
     }
 
     const updated = getCurrentUser();
     if (updated) setAvatar(updated);
-    toast.show("Configuracion guardada");
+    toast.show(t("toast.settingsSaved"));
     closeSettingsModal();
   });
 }
 
+if (languageToggle) {
+  languageToggle.checked = getLanguage() === "en";
+  languageToggle.addEventListener("change", () => {
+    setLanguage(languageToggle.checked ? "en" : "es");
+    updatePasswordToggleLabels();
+  });
+}
+
+window.addEventListener("languagechange", () => {
+  if (languageToggle) languageToggle.checked = getLanguage() === "en";
+  updatePasswordToggleLabels();
+});
 
 if (btnLogout) {
   btnLogout.addEventListener("click", () => {
@@ -346,6 +370,10 @@ if (btnLogout) {
     router.setRoute("login");
   });
 }
+
+document.documentElement.lang = getLanguage();
+applyTranslations();
+updatePasswordToggleLabels();
 
 const currentUser = getCurrentUser();
 if (currentUser) {

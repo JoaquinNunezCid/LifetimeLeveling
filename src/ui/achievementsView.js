@@ -1,4 +1,5 @@
 import { ACHIEVEMENTS, getAchievementProgress } from "../core/achievements.js";
+import { getAchievementTitle, t } from "../core/i18n.js";
 
 function escapeHTML(str) {
   return String(str)
@@ -15,10 +16,10 @@ export function mountAchievementsView({ store }) {
   if (!countEl || !listEl) return;
 
   const categoryMeta = [
-    { key: "level", label: "Niveles" },
-    { key: "streak", label: "Rachas" },
-    { key: "goals", label: "Objetivos diarios" },
-    { key: "actions", label: "Objetivos extra" },
+    { key: "level", label: "level" },
+    { key: "streak", label: "streak" },
+    { key: "goals", label: "goals" },
+    { key: "actions", label: "actions" },
   ];
   const grouped = categoryMeta.map(category => ({
     ...category,
@@ -63,7 +64,7 @@ export function mountAchievementsView({ store }) {
       groupItem.className = `achievementGroup${isOpen ? " open" : ""}`;
       groupItem.innerHTML = `
         <button class="achievementGroupSummary" type="button" data-achievement-toggle="${category.key}" aria-expanded="${isOpen}">
-          <span class="achievementGroupTitle">${escapeHTML(category.label)}</span>
+          <span class="achievementGroupTitle">${escapeHTML(t(`achievement.${category.key}`))}</span>
           <span class="achievementGroupMeta">${doneCount}/${category.items.length}</span>
           <span class="achievementGroupIcon" aria-hidden="true">${isOpen ? "-" : "+"}</span>
         </button>
@@ -89,10 +90,10 @@ export function mountAchievementsView({ store }) {
               <span class="progressText">${pct}%</span>
             </div>
             <div class="achievementInfo">
-              <p class="achievementTitle">${escapeHTML(achievement.title)}</p>
-              <p class="muted">Progreso ${Math.min(progress.current, progress.target)} / ${progress.target}</p>
+              <p class="achievementTitle">${escapeHTML(getAchievementTitle(achievement.id, achievement.title))}</p>
+              <p class="muted">${escapeHTML(t("stats.progress", { current: Math.min(progress.current, progress.target), target: progress.target }))}</p>
             </div>
-            ${done ? `<span class="pill">Completado</span>` : ""}
+            ${done ? `<span class="pill">${escapeHTML(t("achievements.completed"))}</span>` : ""}
           `;
           groupList.appendChild(li);
         });
@@ -103,5 +104,11 @@ export function mountAchievementsView({ store }) {
   }
 
   render(store.getState());
-  return store.subscribe(render);
+  const onLanguageChange = () => render(store.getState());
+  window.addEventListener("languagechange", onLanguageChange);
+  const unsubscribe = store.subscribe(render);
+  return () => {
+    unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
+  };
 }

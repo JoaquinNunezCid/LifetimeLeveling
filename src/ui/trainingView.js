@@ -1,4 +1,5 @@
 import { getNow } from "../core/date.js";
+import { getDayLabel, t } from "../core/i18n.js";
 
 function escapeHTML(str) {
   return String(str)
@@ -25,16 +26,6 @@ export function mountTrainingView({ store, openModal }) {
     "sunday",
   ];
 
-  const dayLabels = {
-    monday: "Lunes",
-    tuesday: "Martes",
-    wednesday: "Miercoles",
-    thursday: "Jueves",
-    friday: "Viernes",
-    saturday: "Sabado",
-    sunday: "Domingo",
-  };
-
   function getDefaultDay() {
     const index = getNow().getDay();
     const map = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
@@ -57,20 +48,22 @@ export function mountTrainingView({ store, openModal }) {
     list.innerHTML = "";
 
     if (!training.length) {
-      const label = dayLabels[currentDay] || "Este dia";
-      list.innerHTML = `<li><span class="muted">Sin ejercicios para ${label}.</span></li>`;
+      const label = getDayLabel(currentDay) || t("dayModal.title");
+      list.innerHTML = `<li><span class="muted">${escapeHTML(t("training.none", { day: label }))}</span></li>`;
       return;
     }
 
     const frag = document.createDocumentFragment();
     training.forEach(item => {
       const li = document.createElement("li");
+      const done = Number.isFinite(Number(item.done)) ? Number(item.done) : 0;
       li.innerHTML = `
         <span class="text">${escapeHTML(item.name)}</span>
         <span class="pill">${escapeHTML(item.reps)}</span>
+        <input class="trainingDoneInput" type="number" min="0" step="1" value="${escapeHTML(done)}" data-training-done="${escapeHTML(item.id)}" aria-label="${escapeHTML(t("training.done"))}" />
         <span class="actions">
-          <button class="btn ghost" data-training-edit="${escapeHTML(item.id)}">Editar</button>
-          <button class="btn ghost" data-training-remove="${escapeHTML(item.id)}">Quitar</button>
+          <button class="btn ghost" data-training-edit="${escapeHTML(item.id)}">${escapeHTML(t("training.edit"))}</button>
+          <button class="btn ghost" data-training-remove="${escapeHTML(item.id)}">${escapeHTML(t("training.remove"))}</button>
         </span>
       `;
       frag.appendChild(li);
@@ -81,14 +74,14 @@ export function mountTrainingView({ store, openModal }) {
   btnAdd.addEventListener("click", () => {
     if (!openModal) return;
     openModal({
-      title: "Nuevo ejercicio",
-      placeholder: "Ej: Flexiones",
+      title: t("training.new"),
+      placeholder: t("training.namePlaceholder"),
       onOk: (name) => {
         openModal({
-          title: "Repeticiones",
-          placeholder: "Ej: 3x12",
+          title: t("training.repsTitle"),
+          placeholder: t("training.repsPlaceholder"),
           onOk: (reps) => {
-            store.dispatch({ type: "TRAINING_ADD", payload: { name, reps, day: currentDay } });
+            store.dispatch({ type: "TRAINING_ADD", payload: { name, reps, done: 0, day: currentDay } });
           },
         });
       },
@@ -115,20 +108,30 @@ export function mountTrainingView({ store, openModal }) {
     if (!item) return;
 
     openModal({
-      title: "Editar ejercicio",
-      placeholder: "Ej: Flexiones",
+      title: t("training.editTitle"),
+      placeholder: t("training.namePlaceholder"),
       value: item.name,
       onOk: (name) => {
         openModal({
-          title: "Editar repeticiones",
-          placeholder: "Ej: 3x12",
+          title: t("training.editReps"),
+          placeholder: t("training.repsPlaceholder"),
           value: item.reps,
           onOk: (reps) => {
-            store.dispatch({ type: "TRAINING_UPDATE", payload: { id, name, reps, day: currentDay } });
+            store.dispatch({ type: "TRAINING_UPDATE", payload: { id, name, reps, done: item.done, day: currentDay } });
           },
         });
       },
     });
+  });
+
+  list.addEventListener("change", (e) => {
+    const input = e.target.closest("[data-training-done]");
+    if (!input) return;
+    const id = input.dataset.trainingDone;
+    if (!id) return;
+    const raw = Number(input.value);
+    const done = Number.isFinite(raw) && raw >= 0 ? Math.floor(raw) : 0;
+    store.dispatch({ type: "TRAINING_DONE_SET", payload: { id, done, day: currentDay } });
   });
 
   dayTabs.addEventListener("click", (e) => {
@@ -146,9 +149,12 @@ export function mountTrainingView({ store, openModal }) {
 
   document.addEventListener("routechange", onRouteChange);
   setActiveDay(currentDay);
+  const onLanguageChange = () => render(store.getState());
+  window.addEventListener("languagechange", onLanguageChange);
   const unsubscribe = store.subscribe(render);
   return () => {
     unsubscribe?.();
+    window.removeEventListener("languagechange", onLanguageChange);
     document.removeEventListener("routechange", onRouteChange);
   };
 }
