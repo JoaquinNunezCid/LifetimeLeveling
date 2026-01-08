@@ -54,7 +54,23 @@
           <label class="label" for="loginPassword" data-i18n="auth.password">Password</label>
           <div class="inputRow">
             <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
-            <button class="btn ghost iconBtn" type="button" data-toggle-password="loginPassword" data-i18n="auth.show">Ver</button>
+            <button class="btn ghost iconBtn passwordToggle" type="button" data-toggle-password="loginPassword" aria-pressed="false">
+              <span class="eyeIcon open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+              <span class="eyeIcon closed" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M3 3l18 18"/>
+                  <path d="M2 12s3.5-6 10-6c2.3 0 4.2 0.7 5.8 1.8"/>
+                  <path d="M22 12s-1.6 2.8-4.5 4.6"/>
+                  <path d="M9 9a3 3 0 0 1 4.2 4.2"/>
+                </svg>
+              </span>
+              <span class="srOnly" data-toggle-label>Ver</span>
+            </button>
           </div>
 
           <p class="formError" id="loginError" hidden></p>
@@ -88,12 +104,44 @@
           </div>
           <div class="inputRow">
             <input class="input" id="signupPassword" type="password" autocomplete="new-password" required />
-            <button class="btn ghost iconBtn" type="button" data-toggle-password="signupPassword" data-i18n="auth.show">Ver</button>
+            <button class="btn ghost iconBtn passwordToggle" type="button" data-toggle-password="signupPassword" aria-pressed="false">
+              <span class="eyeIcon open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+              <span class="eyeIcon closed" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M3 3l18 18"/>
+                  <path d="M2 12s3.5-6 10-6c2.3 0 4.2 0.7 5.8 1.8"/>
+                  <path d="M22 12s-1.6 2.8-4.5 4.6"/>
+                  <path d="M9 9a3 3 0 0 1 4.2 4.2"/>
+                </svg>
+              </span>
+              <span class="srOnly" data-toggle-label>Ver</span>
+            </button>
           </div>
           <label class="label" for="signupPasswordConfirm" data-i18n="auth.passwordConfirm">Repetir password</label>
           <div class="inputRow">
             <input class="input" id="signupPasswordConfirm" type="password" autocomplete="new-password" required />
-            <button class="btn ghost iconBtn" type="button" data-toggle-password="signupPasswordConfirm" data-i18n="auth.show">Ver</button>
+            <button class="btn ghost iconBtn passwordToggle" type="button" data-toggle-password="signupPasswordConfirm" aria-pressed="false">
+              <span class="eyeIcon open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </span>
+              <span class="eyeIcon closed" aria-hidden="true">
+                <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                  <path d="M3 3l18 18"/>
+                  <path d="M2 12s3.5-6 10-6c2.3 0 4.2 0.7 5.8 1.8"/>
+                  <path d="M22 12s-1.6 2.8-4.5 4.6"/>
+                  <path d="M9 9a3 3 0 0 1 4.2 4.2"/>
+                </svg>
+              </span>
+              <span class="srOnly" data-toggle-label>Ver</span>
+            </button>
           </div>
 
           <p class="formError" id="signupError" hidden></p>
@@ -329,13 +377,46 @@
         <label class="label" for="settingsPassword" data-i18n="settings.password">Password</label>
         <div class="inputRow">
           <input class="input" id="settingsPassword" type="password" autocomplete="new-password" />
-          <button class="btn ghost iconBtn" type="button" data-toggle-password="settingsPassword" data-i18n="auth.show">Ver</button>
+          <button class="btn ghost iconBtn passwordToggle" type="button" data-toggle-password="settingsPassword" aria-pressed="false">
+            <span class="eyeIcon open" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </span>
+            <span class="eyeIcon closed" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                <path d="M3 3l18 18"/>
+                <path d="M2 12s3.5-6 10-6c2.3 0 4.2 0.7 5.8 1.8"/>
+                <path d="M22 12s-1.6 2.8-4.5 4.6"/>
+                <path d="M9 9a3 3 0 0 1 4.2 4.2"/>
+              </svg>
+            </span>
+            <span class="srOnly" data-toggle-label>Ver</span>
+          </button>
         </div>
         <label class="label" for="settingsPasswordConfirm" data-i18n="settings.passwordConfirm">Repetir password</label>
         <div class="inputRow">
           <input class="input" id="settingsPasswordConfirm" type="password" autocomplete="new-password" />
-          <button class="btn ghost iconBtn" type="button" data-toggle-password="settingsPasswordConfirm" data-i18n="auth.show">Ver</button>
+          <button class="btn ghost iconBtn passwordToggle" type="button" data-toggle-password="settingsPasswordConfirm" aria-pressed="false">
+            <span class="eyeIcon open" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </span>
+            <span class="eyeIcon closed" aria-hidden="true">
+              <svg viewBox="0 0 24 24" role="presentation" focusable="false">
+                <path d="M3 3l18 18"/>
+                <path d="M2 12s3.5-6 10-6c2.3 0 4.2 0.7 5.8 1.8"/>
+                <path d="M22 12s-1.6 2.8-4.5 4.6"/>
+                <path d="M9 9a3 3 0 0 1 4.2 4.2"/>
+              </svg>
+            </span>
+            <span class="srOnly" data-toggle-label>Ver</span>
+          </button>
         </div>
+        <p class="muted" data-i18n="settings.passwordHint">Deja en blanco si no quieres cambiarla.</p>
 
         <label class="label" for="settingsAvatar" data-i18n="settings.avatar">Imagen de usuario</label>
         <input class="input" id="settingsAvatar" type="file" accept="image/*" />

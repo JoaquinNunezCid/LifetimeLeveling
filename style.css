@@ -1045,6 +1045,15 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   min-height: 44px;
   box-shadow: inset 0 0 10px rgba(0,0,0,0.35);
 }
+.input[type="password"]::-ms-reveal,
+.input[type="password"]::-ms-clear {
+  display: none;
+}
+.input[type="password"]::-webkit-credentials-auto-fill-button,
+.input[type="password"]::-webkit-contacts-auto-fill-button {
+  visibility: hidden;
+  pointer-events: none;
+}
 .inputRow {
   display: flex;
   gap: 8px;
@@ -1053,6 +1062,41 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
 }
 .inputRow .input { margin: 0; flex: 1; }
 .iconBtn { padding: 10px 12px; min-height: 44px; }
+.passwordToggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-width: 44px;
+  position: relative;
+}
+.passwordToggle .eyeIcon {
+  width: 18px;
+  height: 18px;
+  display: none;
+}
+.passwordToggle .eyeIcon svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.passwordToggle[data-visible="true"] .eyeIcon.open { display: block; }
+.passwordToggle[data-visible="false"] .eyeIcon.closed { display: block; }
+.srOnly {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 .switchRow {
   display: flex;
   align-items: center;

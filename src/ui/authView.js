@@ -20,6 +20,18 @@ function passwordIssues(password) {
   return issues;
 }
 
+function setPasswordToggleState(btn, input) {
+  if (!btn || !input) return;
+  const isVisible = input.type === "text";
+  const label = isVisible ? t("auth.hide") : t("auth.show");
+  btn.dataset.visible = String(isVisible);
+  btn.setAttribute("aria-pressed", String(isVisible));
+  btn.setAttribute("aria-label", label);
+  btn.setAttribute("title", label);
+  const labelEl = btn.querySelector("[data-toggle-label]");
+  if (labelEl) labelEl.textContent = label;
+}
+
 export function mountAuthView({ router, toast, onAuth }) {
   const loginForm = document.getElementById("loginForm");
   const signupForm = document.getElementById("signupForm");
@@ -54,9 +66,11 @@ export function mountAuthView({ router, toast, onAuth }) {
       if (!input) return;
       const nextType = input.type === "password" ? "text" : "password";
       input.type = nextType;
-      btn.textContent = nextType === "password" ? t("auth.show") : t("auth.hide");
-      btn.setAttribute("aria-pressed", nextType !== "password");
+      setPasswordToggleState(btn, input);
     });
+    const targetId = btn.dataset.togglePassword;
+    const input = document.getElementById(targetId);
+    if (input) setPasswordToggleState(btn, input);
   });
 
   if (loginForm) {

@@ -152,7 +152,14 @@ function updatePasswordToggleLabels() {
     const targetId = btn.dataset.togglePassword;
     const input = document.getElementById(targetId);
     if (!input) return;
-    btn.textContent = input.type === "password" ? t("auth.show") : t("auth.hide");
+    const isVisible = input.type === "text";
+    const label = isVisible ? t("auth.hide") : t("auth.show");
+    btn.dataset.visible = String(isVisible);
+    btn.setAttribute("aria-pressed", String(isVisible));
+    btn.setAttribute("aria-label", label);
+    btn.setAttribute("title", label);
+    const labelEl = btn.querySelector("[data-toggle-label]");
+    if (labelEl) labelEl.textContent = label;
   });
 }
 
