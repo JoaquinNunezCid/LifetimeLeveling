@@ -573,10 +573,10 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
 
 .trainingHeader {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 1fr;
+  grid-template-columns: 36px 1fr 120px 120px 1fr;
   align-items: center;
   justify-content: stretch;
-  gap: 10px;
+  gap: 12px;
   padding: 6px 10px;
   margin-top: 6px;
   color: var(--muted);
@@ -585,14 +585,130 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   text-transform: uppercase;
   border-bottom: 1px solid var(--line);
 }
+.trainingHeader::before {
+  content: "";
+  width: 28px;
+  height: 1px;
+}
 .trainingHeader .col { flex: 1; }
 .trainingHeader .reps { text-align: center; }
 .trainingHeader .actions { text-align: right; }
 .list li .actions { display: inline-flex; gap: 8px; }
 #trainingList li {
   display: grid;
-  grid-template-columns: 1fr 120px 120px 1fr;
+  grid-template-columns: 36px 1fr 120px 120px 1fr;
   align-items: center;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+#trainingList li.emptyState {
+  display: block;
+  grid-template-columns: none;
+  text-align: center;
+  padding: 14px 12px;
+}
+#trainingList li.emptyState .muted {
+  display: block;
+  max-width: 100%;
+  line-height: 1.4;
+}
+.trainingItem .text {
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.trainingItem {
+  position: relative;
+}
+.trainingItem.dragging {
+  opacity: 0.5;
+  transform: scale(0.99);
+  border-color: rgba(97, 164, 255, 0.4);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.35), 0 0 12px rgba(97, 164, 255, 0.2);
+}
+.trainingItem.dragOver {
+  border-color: rgba(97, 164, 255, 0.7);
+  box-shadow: 0 0 14px rgba(97, 164, 255, 0.18);
+  background: rgba(13, 24, 34, 0.92);
+}
+.trainingItem.dragOver::before {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  top: 0;
+  height: 3px;
+  border-radius: 999px;
+  background: #61a4ff;
+  box-shadow: 0 0 12px rgba(97, 164, 255, 0.5);
+}
+.trainingItem.dragOver.dragOverAfter::before {
+  top: auto;
+  bottom: 0;
+}
+.dragHandle {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  touch-action: none;
+  opacity: 0.45;
+  transition: opacity 0.15s ease, transform 0.15s ease, background 0.15s ease;
+  margin: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--muted);
+  justify-self: center;
+  border-radius: 8px;
+}
+.btn.ghost.dragHandle {
+  border: none;
+  background: transparent;
+  box-shadow: none;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 0;
+}
+.trainingItem:hover .dragHandle,
+.trainingItem:focus-within .dragHandle,
+.trainingItem.dragging .dragHandle {
+  opacity: 1;
+  transform: translateY(-1px);
+  color: var(--fg);
+  background: rgba(255, 255, 255, 0.06);
+}
+.dragHandle:active {
+  cursor: grabbing;
+  transform: translateY(0);
+  background: rgba(255, 255, 255, 0.1);
+}
+.dragIcon {
+  width: 16px;
+  height: 16px;
+  position: relative;
+  display: inline-block;
+  opacity: 0.9;
+}
+.dragIcon::before {
+  content: "";
+  position: absolute;
+  top: 1px;
+  left: 4px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow:
+    0 6px 0 currentColor,
+    0 12px 0 currentColor,
+    6px 0 0 currentColor,
+    6px 6px 0 currentColor,
+    6px 12px 0 currentColor;
 }
 #trainingList li .pill {
   justify-self: center;
@@ -616,11 +732,18 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
 @media (max-width: 720px) {
   .trainingHeader { display: none; }
   #trainingList li {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: 32px 1fr auto;
     grid-template-areas:
-      "name actions"
-      "reps done";
+      "drag name actions"
+      "drag reps done";
     row-gap: 8px;
+  }
+  #trainingList li .dragHandle {
+    grid-area: drag;
+    align-self: center;
+    justify-self: center;
+    grid-row: 1 / span 2;
+    margin-top: 0;
   }
   #trainingList li .text {
     grid-area: name;
@@ -768,6 +891,15 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   background: rgba(11, 22, 32, 0.85);
   margin-bottom:8px;
   box-shadow: 0 0 10px rgba(0,0,0,0.25);
+}
+.list li.emptyState {
+  display: block;
+  text-align: center;
+  padding: 14px 12px;
+}
+.list li.emptyState .muted {
+  display: block;
+  line-height: 1.4;
 }
 .list li .text { overflow:hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 
@@ -1189,6 +1321,9 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   -ms-overflow-style: none;
+}
+.modalMessage {
+  margin: 10px 0 0;
 }
 .modalBox::-webkit-scrollbar { display: none; }
 .defeatModal {

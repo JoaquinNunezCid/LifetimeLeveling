@@ -505,6 +505,35 @@ export function createStore({ userId, initialState = null }) {
         setState({ ...normalized, training });
         return;
       }
+      case "TRAINING_REORDER": {
+        const day = String(action.payload?.day || "");
+        const fromId = String(action.payload?.fromId || "");
+        const toId = String(action.payload?.toId || "");
+        const after = !!action.payload?.after;
+        if (!day || !fromId) return;
+        const currentWeek = normalized.training || {};
+        const currentDay = Array.isArray(currentWeek[day]) ? currentWeek[day] : [];
+        if (currentDay.length < 2) return;
+        const fromIndex = currentDay.findIndex(t => t.id === fromId);
+        if (fromIndex === -1) return;
+        const toIndex = toId ? currentDay.findIndex(t => t.id === toId) : -1;
+        const nextDay = [...currentDay];
+        const [moved] = nextDay.splice(fromIndex, 1);
+        if (!moved) return;
+        if (toIndex === -1) {
+          nextDay.push(moved);
+        } else {
+          let insertIndex = toIndex;
+          if (fromIndex < toIndex) insertIndex -= 1;
+          if (after) insertIndex += 1;
+          insertIndex = Math.max(0, Math.min(nextDay.length, insertIndex));
+          nextDay.splice(insertIndex, 0, moved);
+        }
+        if (nextDay.every((item, idx) => item.id === currentDay[idx]?.id)) return;
+        const training = { ...currentWeek, [day]: nextDay };
+        setState({ ...normalized, training });
+        return;
+      }
 
       case "USER_SET_NAME": {
         const name = String(action.payload || "").trim();

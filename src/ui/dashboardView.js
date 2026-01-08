@@ -250,6 +250,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
 
   function openMonthPicker() {
     if (!monthPickerModal || !monthPickerYear || !monthPickerMonth) return;
+    const wasOpen = monthPickerModal.classList.contains("show");
     const current = getNow();
     const startDate = getStartDate();
     buildYearOptions(startDate);
@@ -266,30 +267,33 @@ export function mountDashboardView({ store, router, toast, openModal }) {
     }
     monthPickerModal.classList.add("show");
     monthPickerModal.setAttribute("aria-hidden", "false");
-    lockPageForModal();
+    if (!wasOpen) lockPageForModal();
   }
 
   function closeMonthPicker() {
     if (!monthPickerModal) return;
+    const wasOpen = monthPickerModal.classList.contains("show");
     monthPickerModal.classList.remove("show");
     monthPickerModal.setAttribute("aria-hidden", "true");
-    unlockPageForModal();
+    if (wasOpen) unlockPageForModal();
   }
 
   function openDefeatModal() {
     if (!defeatModal) return;
+    const wasOpen = defeatModal.classList.contains("show");
     document.body.classList.add("defeatMode");
     defeatModal.classList.add("show");
     defeatModal.setAttribute("aria-hidden", "false");
-    lockPageForModal();
+    if (!wasOpen) lockPageForModal();
     playDefeatSound();
   }
 
   function closeDefeatModal() {
     if (!defeatModal) return;
+    const wasOpen = defeatModal.classList.contains("show");
     defeatModal.classList.remove("show");
     defeatModal.setAttribute("aria-hidden", "true");
-    unlockPageForModal();
+    if (wasOpen) unlockPageForModal();
   }
 
   function playDefeatSound() {
@@ -391,6 +395,7 @@ export function mountDashboardView({ store, router, toast, openModal }) {
 
   function openDayModal(state, key) {
     if (!dayModal || !dayModalTitle || !dayMissionText) return;
+    const wasOpen = dayModal.classList.contains("show");
     const d = new Date(key + "T00:00:00");
     const locale = getLanguage() === "en" ? "en-US" : "es-AR";
     dayModalTitle.textContent = d.toLocaleDateString(locale, {
@@ -448,14 +453,15 @@ export function mountDashboardView({ store, router, toast, openModal }) {
 
     dayModal.classList.add("show");
     dayModal.setAttribute("aria-hidden", "false");
-    lockPageForModal();
+    if (!wasOpen) lockPageForModal();
   }
 
   function closeDayModal() {
     if (!dayModal) return;
+    const wasOpen = dayModal.classList.contains("show");
     dayModal.classList.remove("show");
     dayModal.setAttribute("aria-hidden", "true");
-    unlockPageForModal();
+    if (wasOpen) unlockPageForModal();
   }
 
   function render(state) {

@@ -17,40 +17,81 @@ import { applyTranslations, getLanguage, setLanguage, t } from "./core/i18n.js";
 function createModal() {
   const modal = document.getElementById("modal");
   const titleEl = document.getElementById("modalTitle");
+  const messageEl = document.getElementById("modalMessage");
   const inputEl = document.getElementById("modalInput");
   const btnOk = document.getElementById("modalOk");
   const btnCancel = document.getElementById("modalCancel");
+  let closeActive = null;
 
-  function open({ title, placeholder, value = "", onOk }) {
+  function open({
+    title,
+    placeholder,
+    value = "",
+    onOk,
+    message = "",
+    okLabel,
+    cancelLabel,
+    showInput = true,
+  }) {
+    const wasOpen = modal.classList.contains("show");
     titleEl.textContent = title || t("settings.title");
-    inputEl.placeholder = placeholder || "";
-    inputEl.value = value;
+    if (messageEl) {
+      messageEl.textContent = message || "";
+      messageEl.hidden = !message;
+    }
+    const useInput = showInput !== false;
+    inputEl.hidden = !useInput;
+    inputEl.disabled = !useInput;
+    if (useInput) {
+      inputEl.placeholder = placeholder || "";
+      inputEl.value = value;
+    } else {
+      inputEl.placeholder = "";
+      inputEl.value = "";
+    }
+    btnOk.textContent = okLabel || t("settings.save");
+    btnCancel.textContent = cancelLabel || t("settings.cancel");
 
     const close = () => {
+      const isOpen = modal.classList.contains("show");
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
-      unlockPageForModal();
+      modal.removeAttribute("aria-describedby");
+      if (isOpen) unlockPageForModal();
       btnOk.onclick = null;
       btnCancel.onclick = null;
+      closeActive = null;
     };
+    closeActive = close;
 
     btnCancel.onclick = close;
     btnOk.onclick = () => {
-      const v = inputEl.value.trim();
-      if (!v) return;
+      const v = useInput ? inputEl.value.trim() : "";
+      if (useInput && !v) return;
       close();
-      onOk?.(v);
+      onOk?.(useInput ? v : undefined);
     };
 
     modal.classList.add("show");
     modal.setAttribute("aria-hidden", "false");
-    lockPageForModal();
-    inputEl.focus();
+    if (messageEl && message) {
+      modal.setAttribute("aria-describedby", "modalMessage");
+    }
+    if (!wasOpen) lockPageForModal();
+    if (useInput) {
+      inputEl.focus();
+    } else {
+      btnOk.focus();
+    }
   }
 
   // Cerrar con ESC
   window.addEventListener("keydown", (e) => {
     if (e.key === "Escape" && modal.classList.contains("show")) {
+      if (closeActive) {
+        closeActive();
+        return;
+      }
       modal.classList.remove("show");
       modal.setAttribute("aria-hidden", "true");
       unlockPageForModal();
@@ -271,15 +312,17 @@ if (btnNavToggle && primaryNav) {
 
 function closeSettingsModal() {
   if (!settingsModal) return;
+  const wasOpen = settingsModal.classList.contains("show");
   settingsModal.classList.remove("show");
   settingsModal.setAttribute("aria-hidden", "true");
-  unlockPageForModal();
+  if (wasOpen) unlockPageForModal();
   if (settingsForm) settingsForm.reset();
   setError(settingsError, "");
 }
 
 function openSettingsModal() {
   if (!settingsModal) return;
+  const wasOpen = settingsModal.classList.contains("show");
   const user = getCurrentUser();
   if (settingsName) settingsName.value = user?.name || "";
   if (settingsPassword) settingsPassword.value = "";
@@ -289,7 +332,7 @@ function openSettingsModal() {
   setError(settingsError, "");
   settingsModal.classList.add("show");
   settingsModal.setAttribute("aria-hidden", "false");
-  lockPageForModal();
+  if (!wasOpen) lockPageForModal();
 }
 
 window.addEventListener("keydown", (e) => {
