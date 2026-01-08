@@ -49,7 +49,7 @@ export function mountTrainingView({ store, openModal }) {
 
     if (!training.length) {
       const label = getDayLabel(currentDay) || t("dayModal.title");
-      list.innerHTML = `<li class="emptyState"><span class="muted">${escapeHTML(t("training.none", { day: label }))}</span></li>`;
+      list.innerHTML = `<li><span class="muted">${escapeHTML(t("training.none", { day: label }))}</span></li>`;
       return;
     }
 

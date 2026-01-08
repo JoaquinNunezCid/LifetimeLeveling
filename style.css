@@ -601,17 +601,6 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   column-gap: 12px;
   row-gap: 8px;
 }
-#trainingList li.emptyState {
-  display: block;
-  grid-template-columns: none;
-  text-align: center;
-  padding: 14px 12px;
-}
-#trainingList li.emptyState .muted {
-  display: block;
-  max-width: 100%;
-  line-height: 1.4;
-}
 .trainingItem .text {
   font-weight: 600;
   letter-spacing: 0.02em;
@@ -718,6 +707,12 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
 }
 #trainingList li .actions {
   justify-self: end;
+}
+#trainingList li > .muted {
+  grid-column: 1 / -1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .trainingDoneInput {
   width: 90px;
@@ -891,15 +886,6 @@ h3 { margin: 0; font-family: "Orbitron", "Space Grotesk", sans-serif; }
   background: rgba(11, 22, 32, 0.85);
   margin-bottom:8px;
   box-shadow: 0 0 10px rgba(0,0,0,0.25);
-}
-.list li.emptyState {
-  display: block;
-  text-align: center;
-  padding: 14px 12px;
-}
-.list li.emptyState .muted {
-  display: block;
-  line-height: 1.4;
 }
 .list li .text { overflow:hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 70%; }
 
