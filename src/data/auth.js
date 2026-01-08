@@ -1,6 +1,14 @@
 import { apiRequest, clearToken, getToken, setToken } from "./api.js";
 
 const USER_KEY = "levelup_current_user";
+const DEV_SHORTCUT_USER = "admin";
+const DEV_SHORTCUT_PASS = "admin";
+const DEV_LOCAL_USER = {
+  id: "local-admin",
+  name: "Admin",
+  email: DEV_SHORTCUT_USER,
+  avatar: "",
+};
 
 function safeParse(raw) {
   try { return JSON.parse(raw); } catch { return null; }
@@ -21,6 +29,16 @@ function clearUser() {
   localStorage.removeItem(USER_KEY);
 }
 
+export function isLocalDevHost() {
+  const host = window?.location?.hostname || "";
+  return host === "localhost" || host === "127.0.0.1" || host === "0.0.0.0";
+}
+
+export function isDevShortcutEmail(email) {
+  if (!isLocalDevHost()) return false;
+  return String(email || "").trim().toLowerCase() === DEV_SHORTCUT_USER;
+}
+
 export async function createUser({ name, email, password }) {
   const payload = {
     name: String(name || "").trim(),
@@ -37,9 +55,16 @@ export async function createUser({ name, email, password }) {
 }
 
 export async function authenticate(email, password) {
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const cleanPass = String(password || "").trim();
+  if (isLocalDevHost() && cleanEmail === DEV_SHORTCUT_USER && cleanPass === DEV_SHORTCUT_PASS) {
+    clearToken();
+    saveUser(DEV_LOCAL_USER);
+    return { user: DEV_LOCAL_USER };
+  }
   const payload = {
-    email: String(email || "").trim().toLowerCase(),
-    password: String(password || "").trim(),
+    email: cleanEmail,
+    password: cleanPass,
   };
   const res = await apiRequest("/api/auth/login", { method: "POST", body: payload });
   if (res?.token && res?.user) {

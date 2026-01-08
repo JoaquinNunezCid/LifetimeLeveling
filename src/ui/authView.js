@@ -1,4 +1,4 @@
-import { authenticate, createUser } from "../data/auth.js";
+import { authenticate, createUser, isDevShortcutEmail, isLocalDevHost } from "../data/auth.js";
 import { t } from "../core/i18n.js";
 
 function setError(el, msg) {
@@ -60,13 +60,14 @@ export function mountAuthView({ router, toast, onAuth }) {
   });
 
   if (loginForm) {
+    loginForm.noValidate = isLocalDevHost();
     loginForm.addEventListener("submit", async (e) => {
       e.preventDefault();
       setError(loginError, "");
 
       const email = document.getElementById("loginEmail")?.value || "";
       const password = document.getElementById("loginPassword")?.value || "";
-      if (!isValidEmail(email)) {
+      if (!isDevShortcutEmail(email) && !isValidEmail(email)) {
         setError(loginError, t("auth.invalidEmail"));
         return;
       }
