@@ -90,6 +90,11 @@
             <input class="input" id="signupPassword" type="password" autocomplete="new-password" required />
             <button class="btn ghost iconBtn" type="button" data-toggle-password="signupPassword" data-i18n="auth.show">Ver</button>
           </div>
+          <label class="label" for="signupPasswordConfirm" data-i18n="auth.passwordConfirm">Repetir password</label>
+          <div class="inputRow">
+            <input class="input" id="signupPasswordConfirm" type="password" autocomplete="new-password" required />
+            <button class="btn ghost iconBtn" type="button" data-toggle-password="signupPasswordConfirm" data-i18n="auth.show">Ver</button>
+          </div>
 
           <p class="formError" id="signupError" hidden></p>
           <div class="actionsRow right">
@@ -321,9 +326,15 @@
         <label class="label" for="settingsName" data-i18n="settings.visibleName">Nombre visible</label>
         <input class="input" id="settingsName" type="text" autocomplete="name" />
 
+        <label class="label" for="settingsPassword" data-i18n="settings.password">Password</label>
         <div class="inputRow">
           <input class="input" id="settingsPassword" type="password" autocomplete="new-password" />
           <button class="btn ghost iconBtn" type="button" data-toggle-password="settingsPassword" data-i18n="auth.show">Ver</button>
+        </div>
+        <label class="label" for="settingsPasswordConfirm" data-i18n="settings.passwordConfirm">Repetir password</label>
+        <div class="inputRow">
+          <input class="input" id="settingsPasswordConfirm" type="password" autocomplete="new-password" />
+          <button class="btn ghost iconBtn" type="button" data-toggle-password="settingsPasswordConfirm" data-i18n="auth.show">Ver</button>
         </div>
 
         <label class="label" for="settingsAvatar" data-i18n="settings.avatar">Imagen de usuario</label>

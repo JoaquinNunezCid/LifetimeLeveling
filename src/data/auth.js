@@ -39,11 +39,12 @@ export function isDevShortcutEmail(email) {
   return String(email || "").trim().toLowerCase() === DEV_SHORTCUT_USER;
 }
 
-export async function createUser({ name, email, password }) {
+export async function createUser({ name, email, password, passwordConfirm }) {
   const payload = {
     name: String(name || "").trim(),
     email: String(email || "").trim().toLowerCase(),
     password: String(password || "").trim(),
+    passwordConfirm: String(passwordConfirm || "").trim(),
   };
   const res = await apiRequest("/api/auth/register", { method: "POST", body: payload });
   if (res?.token && res?.user) {
@@ -121,10 +122,14 @@ export async function updateUserProfile({ id, name, avatar }) {
   return res;
 }
 
-export async function updateUserPassword({ id, password }) {
+export async function updateUserPassword({ id, password, passwordConfirm }) {
   const cleanPass = String(password || "").trim();
   if (!cleanPass) return { error: "invalid_input" };
-  const res = await apiRequest("/api/auth/me/password", { method: "PATCH", body: { password: cleanPass } });
+  const cleanConfirm = String(passwordConfirm || "").trim();
+  const res = await apiRequest("/api/auth/me/password", {
+    method: "PATCH",
+    body: { password: cleanPass, passwordConfirm: cleanConfirm },
+  });
   if (res?.ok) return { ok: true };
   if (!res?.error && id) return { ok: true };
   return res;

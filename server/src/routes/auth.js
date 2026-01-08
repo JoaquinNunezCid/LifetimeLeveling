@@ -14,14 +14,30 @@ function signToken(userId) {
   return jwt.sign({ sub: userId }, secret, { expiresIn: "7d" });
 }
 
+function passwordIssues(password) {
+  const issues = [];
+  if (password.length < 8) issues.push("min_length");
+  if (!/[A-Za-z]/.test(password)) issues.push("letter");
+  if (!/\d/.test(password)) issues.push("number");
+  return issues;
+}
+
 router.post("/register", async (req, res) => {
   try {
     const name = String(req.body?.name || "").trim();
     const email = String(req.body?.email || "").trim().toLowerCase();
     const password = String(req.body?.password || "").trim();
+    const passwordConfirm = String(req.body?.passwordConfirm || "").trim();
 
     if (!email || !password) {
       return res.status(400).json({ error: "invalid_input" });
+    }
+    if (password !== passwordConfirm) {
+      return res.status(400).json({ error: "password_mismatch" });
+    }
+    const issues = passwordIssues(password);
+    if (issues.length) {
+      return res.status(400).json({ error: "password_weak", issues });
     }
 
     const existing = await User.findOne({ email });
@@ -105,7 +121,15 @@ router.patch("/me", requireAuth, async (req, res) => {
 router.patch("/me/password", requireAuth, async (req, res) => {
   try {
     const password = String(req.body?.password || "").trim();
+    const passwordConfirm = String(req.body?.passwordConfirm || "").trim();
     if (!password) return res.status(400).json({ error: "invalid_input" });
+    if (password !== passwordConfirm) {
+      return res.status(400).json({ error: "password_mismatch" });
+    }
+    const issues = passwordIssues(password);
+    if (issues.length) {
+      return res.status(400).json({ error: "password_weak", issues });
+    }
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await User.findByIdAndUpdate(req.userId, { passwordHash }, { new: true });
     if (!user) return res.status(404).json({ error: "not_found" });

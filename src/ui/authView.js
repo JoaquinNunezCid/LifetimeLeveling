@@ -97,6 +97,7 @@ export function mountAuthView({ router, toast, onAuth }) {
       const name = document.getElementById("signupName")?.value || "";
       const email = document.getElementById("signupEmail")?.value || "";
       const password = document.getElementById("signupPassword")?.value || "";
+      const passwordConfirm = document.getElementById("signupPasswordConfirm")?.value || "";
       if (!isValidEmail(email)) {
         setError(signupError, t("auth.invalidEmail"));
         return;
@@ -106,11 +107,26 @@ export function mountAuthView({ router, toast, onAuth }) {
         setError(signupError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
-      const res = await createUser({ name, email, password });
+      if (String(password) !== String(passwordConfirm)) {
+        setError(signupError, t("password.mismatch"));
+        return;
+      }
+      const res = await createUser({ name, email, password, passwordConfirm });
 
       if (res?.error === "email_taken") {
         setError(signupError, t("auth.emailTaken"));
         toast?.show?.(t("auth.emailInUse"));
+        return;
+      }
+
+      if (res?.error === "password_weak") {
+        const backendIssues = passwordIssues(password);
+        setError(signupError, t("toast.passwordWeak", { issues: backendIssues.join(", ") }));
+        return;
+      }
+
+      if (res?.error === "password_mismatch") {
+        setError(signupError, t("password.mismatch"));
         return;
       }
 

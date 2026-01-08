@@ -138,6 +138,7 @@ const settingsModal = document.getElementById("settingsModal");
 const settingsForm = document.getElementById("settingsForm");
 const settingsName = document.getElementById("settingsName");
 const settingsPassword = document.getElementById("settingsPassword");
+const settingsPasswordConfirm = document.getElementById("settingsPasswordConfirm");
 const settingsAvatar = document.getElementById("settingsAvatar");
 const settingsError = document.getElementById("settingsError");
 const settingsCancel = document.getElementById("settingsCancel");
@@ -275,6 +276,7 @@ function openSettingsModal() {
   const user = getCurrentUser();
   if (settingsName) settingsName.value = user?.name || "";
   if (settingsPassword) settingsPassword.value = "";
+  if (settingsPasswordConfirm) settingsPasswordConfirm.value = "";
   if (settingsAvatar) settingsAvatar.value = "";
   if (languageToggle) languageToggle.checked = getLanguage() === "en";
   setError(settingsError, "");
@@ -316,7 +318,13 @@ if (settingsForm) {
 
     const name = settingsName?.value || "";
     const password = settingsPassword?.value || "";
+    const passwordConfirm = settingsPasswordConfirm?.value || "";
     const file = settingsAvatar?.files?.[0] || null;
+
+    if (!password && passwordConfirm) {
+      setError(settingsError, t("auth.passwordRequired"));
+      return;
+    }
 
     if (password) {
       const issues = passwordIssues(password);
@@ -324,7 +332,19 @@ if (settingsForm) {
         setError(settingsError, t("toast.passwordWeak", { issues: issues.join(", ") }));
         return;
       }
-      const res = await updateUserPassword({ id: user.id, password });
+      if (String(password) !== String(passwordConfirm)) {
+        setError(settingsError, t("password.mismatch"));
+        return;
+      }
+      const res = await updateUserPassword({ id: user.id, password, passwordConfirm });
+      if (res?.error === "password_weak") {
+        setError(settingsError, t("toast.passwordWeak", { issues: issues.join(", ") }));
+        return;
+      }
+      if (res?.error === "password_mismatch") {
+        setError(settingsError, t("password.mismatch"));
+        return;
+      }
       if (res?.error) {
         setError(settingsError, t("auth.signupFields"));
         return;
